@@ -136,7 +136,7 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
-**2026-09-04 — Phase 2 (Identity vault) built, not yet tested.**
+**2026-09-04 — Phase 2 (Identity vault) verified working.**
 Added the ability to save a real logged-in account for the system to act
 through, safely. Specifically:
 - A new "Identities" page in the dashboard: add an account, paste its
@@ -150,7 +150,13 @@ through, safely. Specifically:
   fake ("mock") platform.
 - Still no real LinkedIn *actions* yet (connecting, messaging, posting) -
   this phase only proves login storage and checking work. That's next.
-Not yet clicked through in a browser - that's the next verification step.
+Clicked through in the real dashboard: saved a test identity, clicked
+Validate, watched a real (invisible) browser open with the saved login and
+report back "active" within a couple seconds. Along the way, also tried a
+deliberately fake LinkedIn login to see what happens - it failed exactly as
+it should (a clear, readable error saved to that identity, no crash), which
+is a good sign the failure-handling is solid before anything real is ever
+attempted against LinkedIn.
 
 **2026-09-04 — Phase 1 complete: the dashboard works, tested in a real browser.**
 Opened the website, clicked "Run" on the mock profile-collector, and watched

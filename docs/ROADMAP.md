@@ -46,7 +46,8 @@ discover their platform cannot report on it. Do not skip it.
       still sends identityId: null - the plumbing exists, the form doesn't
       expose it yet)
 
-Not yet verified in a browser - do that before calling this phase done.
+**Verified working (mock identity, 2026-09-04).** A real LinkedIn login has
+not been attempted yet - that's a deliberate, separate decision.
 
 ---
 
