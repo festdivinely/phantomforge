@@ -10,10 +10,18 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 
+/**
+ * Buffer, not Uint8Array, is what encryptJson actually produces - but
+ * Prisma's generated client returns database Bytes columns typed as plain
+ * Uint8Array, and Buffer (a strict superset) can't be assigned FROM a bare
+ * Uint8Array even though it's fine the other way round. Typing this as
+ * Uint8Array accepts both a fresh Buffer and a value straight out of Prisma;
+ * Node's crypto functions accept Uint8Array at runtime regardless.
+ */
 export interface EncryptedPayload {
-  ciphertext: Buffer;
-  iv: Buffer;
-  tag: Buffer;
+  ciphertext: Uint8Array;
+  iv: Uint8Array;
+  tag: Uint8Array;
 }
 
 function toKey(base64Key: string): Buffer {
