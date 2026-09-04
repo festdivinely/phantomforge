@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "description": "PhantomForge - a lead-automation platform built on browser automation",
   "packageManager": "pnpm@9.15.0",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -21,7 +23,8 @@
     "db:push": "pnpm --filter @pf/db run push",
     "db:studio": "pnpm --filter @pf/db run studio",
     "db:seed": "pnpm --filter @pf/db run seed",
-    "setup": "pnpm install && pnpm infra:up && pnpm db:generate && pnpm db:migrate && pnpm db:seed"
+    "setup": "pnpm install && pnpm browsers && pnpm infra:up && pnpm db:generate && pnpm db:migrate && pnpm db:seed",
+    "browsers": "pnpm --filter @pf/worker exec playwright install chromium"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

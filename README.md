@@ -13,8 +13,9 @@ checkbox, and a lead graph instead of a pile of CSVs.
 
 ```bash
 pnpm install
+pnpm browsers                       # fetch the Playwright chromium binary
 node scripts/generate-secrets.mjs   # writes .env with generated secrets
-pnpm infra:up                       # postgres + redis + minio (Docker)
+pnpm infra:up                       # postgres + redis + minio (Docker must be RUNNING)
 pnpm db:generate && pnpm db:migrate && pnpm db:seed
 pnpm dev
 ```

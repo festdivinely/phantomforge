@@ -97,6 +97,7 @@ a setting to raise casually. Treat `packages/quota` as load-bearing safety code.
 
 ```bash
 pnpm install            # once
+pnpm browsers           # fetch Playwright chromium (separate from pnpm install)
 node scripts/generate-secrets.mjs   # creates .env with real secrets
 pnpm infra:up           # postgres + redis + minio
 pnpm db:generate        # prisma client
