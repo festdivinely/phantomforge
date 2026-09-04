@@ -91,6 +91,20 @@ restricted. Development happens against the **mock connector**; real runs use a
 throwaway account; the governor's conservative defaults are the guard rail, not
 a setting to raise casually. Treat `packages/quota` as load-bearing safety code.
 
+## PROJECT_GUIDE.md — keep it updated, always
+
+`PROJECT_GUIDE.md` is a plain-language explainer of this whole project for a
+non-technical reader: what it is, what every folder and technology is for,
+and a dated progress log of what's actually been built and verified.
+
+**Update it in the same session as any meaningful change** — a new phase
+completed, a new folder/package added, a technology swapped, a real bug found
+and fixed, a new agent working end to end. Add a new dated entry at the top
+of its progress log rather than editing old entries away. Skip it only for
+pure refactors or typo fixes that a non-technical reader wouldn't care about.
+This is a standing project convention, not a one-time request — every future
+session follows it without being asked again.
+
 ## Working agreement with Divine
 
 - Intermediate developer (JS, Python, React Native). Explain the *why* behind
