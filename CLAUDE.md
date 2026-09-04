@@ -15,11 +15,20 @@ around it — queue, workers, quota, checkpointing, observability — is the pro
 
 ## Current state
 
-**Phase 0 (foundation) — complete.** Scaffolding, infra, schema, interfaces, docs.
-**Phase 1 (walking skeleton) — next.** See `docs/ROADMAP.md`.
+**Phase 0 (foundation) — verified working**, not just written. `pnpm install`,
+`pnpm browsers`, `pnpm infra:up`, `pnpm db:migrate`, `pnpm db:seed`, and
+`pnpm typecheck` (all 9 packages) all run clean on the dev machine.
 
-Nothing has been run end to end yet. `linkedin.send-connection` is a deliberate
-stub that throws; the mock agents are the working reference.
+**Phase 1 (walking skeleton) — in progress.** Worker/queue/API wiring exists
+but has not been exercised with a real job yet, and the dashboard only lists
+agents — it has no trigger button or live run view. Next concrete steps:
+1. `pnpm dev`, confirm web+api+worker all boot
+2. Trigger `mock.collect-profiles` via `POST /api/runs` (curl, since the UI
+   can't yet) and confirm it completes and leads land in the `lead` table
+3. Build the actual trigger button + live status/log view in `apps/web`
+
+`linkedin.send-connection` is a deliberate stub that throws; the mock agents
+are the working reference.
 
 ## Stack
 
