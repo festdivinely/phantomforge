@@ -15,9 +15,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 export const DEV_ORG_ID = 'cmtn2fs2x0000ty98fs8d4bjf';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  // Only claim a JSON content-type when a body is actually being sent -
+  // Fastify's default parser rejects an empty body arriving with
+  // Content-Type: application/json (FST_ERR_CTP_EMPTY_JSON_BODY), which is
+  // exactly what a bodyless POST like .../validate was triggering.
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
+  if (init?.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers,
     cache: 'no-store',
   });
   if (!res.ok) {
