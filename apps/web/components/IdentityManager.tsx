@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 
 export function IdentityManager({ initialIdentities }: { initialIdentities: IdentitySummary[] }) {
   const [identities, setIdentities] = useState(initialIdentities);
-  const [platform, setPlatform] = useState<'linkedin' | 'mock'>('linkedin');
+  const [platform, setPlatform] = useState<'linkedin' | 'mock'>('mock');
   const [label, setLabel] = useState('');
   const [cookieValue, setCookieValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
