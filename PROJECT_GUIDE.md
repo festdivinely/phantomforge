@@ -136,6 +136,15 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-09-04 — The dashboard can now trigger and watch runs (not yet tested live).**
+Built the missing piece from earlier today: you can now open the website,
+click "Run" next to any agent, edit its input, and start it - no more typing
+commands. Clicking Start takes you to a live page for that run showing its
+status, processed/skipped/failed counts, its logs as they happen, and its
+final results, refreshing automatically every 1.5 seconds until it finishes.
+This has been written but not yet clicked through in a real browser - that
+verification happens next.
+
 **2026-09-04 — Foundation built and the full pipeline proven working.**
 Everything above exists and runs. Specifically verified today:
 - The project installs cleanly and every package passes its type-checking

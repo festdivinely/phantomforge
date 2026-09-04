@@ -25,8 +25,9 @@ picks it up -> mock.collect-profiles executes -> checkpoints -> 5 leads
 written to Postgres -> status succeeded. Two bugs fixed along the way:
 BullMQ rejects ':' in queue names (renamed pf:runs -> pf-runs), and Prisma's
 CLI doesn't read the root .env on its own (wrapped packages/db scripts with
-dotenv-cli). Next concrete step: build the trigger button + live status/log
-view in `apps/web` so this is usable without curl/PowerShell.
+dotenv-cli). The trigger button + live status/log view in `apps/web` is now written
+(`components/AgentList.tsx`, `app/runs/[id]/page.tsx`, `lib/api.ts`) but not
+yet verified in a browser - that's the next thing to confirm.
 
 `linkedin.send-connection` is a deliberate stub that throws; the mock agents
 are the working reference.
