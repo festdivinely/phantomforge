@@ -136,14 +136,13 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
-**2026-09-04 — The dashboard can now trigger and watch runs (not yet tested live).**
-Built the missing piece from earlier today: you can now open the website,
-click "Run" next to any agent, edit its input, and start it - no more typing
-commands. Clicking Start takes you to a live page for that run showing its
-status, processed/skipped/failed counts, its logs as they happen, and its
-final results, refreshing automatically every 1.5 seconds until it finishes.
-This has been written but not yet clicked through in a real browser - that
-verification happens next.
+**2026-09-04 — Phase 1 complete: the dashboard works, tested in a real browser.**
+Opened the website, clicked "Run" on the mock profile-collector, and watched
+it go from queued to running to succeeded live, with logs appearing and the
+processed count updating, entirely by clicking - no typed commands. The page
+correctly stopped refreshing itself the moment the run finished. This is the
+first "walking skeleton" milestone fully closed: request a task, watch it
+happen, see the result, start to finish, through the actual website.
 
 **2026-09-04 — Foundation built and the full pipeline proven working.**
 Everything above exists and runs. Specifically verified today:

@@ -21,9 +21,12 @@ docs, git. Nothing executes end to end yet — that is Phase 1's job.
 - [x] Worker consumes from `pf-runs` and executes `mock.collect-profiles`
       (verified 2026-09-04: POST /api/runs -> queued -> succeeded, processed=5)
 - [x] Leads land in the `lead` table
-- [ ] Run logs stream to the dashboard live (currently DB-only, viewable via API)
-- [ ] Dashboard: list agents, trigger a run, watch it live, view results
-      (agent list renders; trigger button + live view not built yet)
+- [x] Run logs stream to the dashboard live (polling, verified 2026-09-04)
+- [x] Dashboard: list agents, trigger a run, watch it live, view results
+      (clicked through in a real browser: agent list -> Run -> live status
+      polling -> auto-stopped at succeeded, exactly as designed)
+
+**Phase 1 complete.**
 
 **Why first:** this proves the entire spine — API → queue → worker → context →
 agent → database → UI. Most clones skip it, build browser automation, and then
