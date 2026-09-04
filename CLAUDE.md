@@ -19,13 +19,14 @@ around it — queue, workers, quota, checkpointing, observability — is the pro
 `pnpm browsers`, `pnpm infra:up`, `pnpm db:migrate`, `pnpm db:seed`, and
 `pnpm typecheck` (all 9 packages) all run clean on the dev machine.
 
-**Phase 1 (walking skeleton) — in progress.** Worker/queue/API wiring exists
-but has not been exercised with a real job yet, and the dashboard only lists
-agents — it has no trigger button or live run view. Next concrete steps:
-1. `pnpm dev`, confirm web+api+worker all boot
-2. Trigger `mock.collect-profiles` via `POST /api/runs` (curl, since the UI
-   can't yet) and confirm it completes and leads land in the `lead` table
-3. Build the actual trigger button + live status/log view in `apps/web`
+**Phase 1 (walking skeleton) — spine proven, UI remaining.** Full pipeline
+verified working end to end on 2026-09-04: POST /api/runs -> queued -> worker
+picks it up -> mock.collect-profiles executes -> checkpoints -> 5 leads
+written to Postgres -> status succeeded. Two bugs fixed along the way:
+BullMQ rejects ':' in queue names (renamed pf:runs -> pf-runs), and Prisma's
+CLI doesn't read the root .env on its own (wrapped packages/db scripts with
+dotenv-cli). Next concrete step: build the trigger button + live status/log
+view in `apps/web` so this is usable without curl/PowerShell.
 
 `linkedin.send-connection` is a deliberate stub that throws; the mock agents
 are the working reference.

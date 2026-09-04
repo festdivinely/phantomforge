@@ -15,13 +15,15 @@ docs, git. Nothing executes end to end yet — that is Phase 1's job.
 
 **Goal:** click a button, watch a job run, see rows appear. No LinkedIn, no real browser.
 
-- [ ] `pnpm install` clean, `pnpm typecheck` green
-- [ ] `pnpm infra:up` → Postgres, Redis, MinIO healthy
-- [ ] First Prisma migration applied, seed data in place
-- [ ] Worker consumes from `pf:runs` and executes `mock.collect-profiles`
-- [ ] Leads land in the `lead` table, deduplicated
-- [ ] Run logs stream to the dashboard; run status transitions correctly
+- [x] `pnpm install` clean, `pnpm typecheck` green
+- [x] `pnpm infra:up` → Postgres, Redis, MinIO healthy
+- [x] First Prisma migration applied, seed data in place
+- [x] Worker consumes from `pf-runs` and executes `mock.collect-profiles`
+      (verified 2026-09-04: POST /api/runs -> queued -> succeeded, processed=5)
+- [x] Leads land in the `lead` table
+- [ ] Run logs stream to the dashboard live (currently DB-only, viewable via API)
 - [ ] Dashboard: list agents, trigger a run, watch it live, view results
+      (agent list renders; trigger button + live view not built yet)
 
 **Why first:** this proves the entire spine — API → queue → worker → context →
 agent → database → UI. Most clones skip it, build browser automation, and then
