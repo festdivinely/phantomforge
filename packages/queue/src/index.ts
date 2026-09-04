@@ -2,7 +2,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import IORedis from 'ioredis';
 import { env } from '@pf/config';
 
-export const RUN_QUEUE_NAME = 'pf:runs';
+export const RUN_QUEUE_NAME = 'pf-runs';
 
 /** BullMQ requires maxRetriesPerRequest: null on the connection it blocks on. */
 export const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
