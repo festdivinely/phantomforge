@@ -11,17 +11,17 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 
 /**
- * Buffer, not Uint8Array, is what encryptJson actually produces - but
- * Prisma's generated client returns database Bytes columns typed as plain
- * Uint8Array, and Buffer (a strict superset) can't be assigned FROM a bare
- * Uint8Array even though it's fine the other way round. Typing this as
- * Uint8Array accepts both a fresh Buffer and a value straight out of Prisma;
- * Node's crypto functions accept Uint8Array at runtime regardless.
+ * Deliberately Uint8Array<ArrayBuffer>, not Buffer. Prisma's generated
+ * client both accepts and returns its Bytes columns as exactly this type,
+ * and Buffer's own declared type (ArrayBufferLike-backed) is subtly too
+ * loose to satisfy it in either direction. encryptJson() re-wraps its
+ * output to match; decryptJson() accepts values read straight back out of
+ * Prisma with no conversion needed.
  */
 export interface EncryptedPayload {
-  ciphertext: Uint8Array;
-  iv: Uint8Array;
-  tag: Uint8Array;
+  ciphertext: Uint8Array<ArrayBuffer>;
+  iv: Uint8Array<ArrayBuffer>;
+  tag: Uint8Array<ArrayBuffer>;
 }
 
 function toKey(base64Key: string): Buffer {
@@ -39,7 +39,17 @@ export function encryptJson(value: unknown, base64Key: string): EncryptedPayload
     cipher.update(JSON.stringify(value), 'utf8'),
     cipher.final(),
   ]);
-  return { ciphertext, iv, tag: cipher.getAuthTag() };
+  const tag = cipher.getAuthTag();
+
+  // Buffer's declared type is looser (ArrayBufferLike) than the specific
+  // Uint8Array<ArrayBuffer> Prisma's generated client expects for its Bytes
+  // columns. Re-wrapping allocates a genuinely fresh ArrayBuffer-backed
+  // Uint8Array that satisfies both that and decryptJson's own reads below.
+  return {
+    ciphertext: new Uint8Array(ciphertext) as Uint8Array<ArrayBuffer>,
+    iv: new Uint8Array(iv) as Uint8Array<ArrayBuffer>,
+    tag: new Uint8Array(tag) as Uint8Array<ArrayBuffer>,
+  };
 }
 
 export function decryptJson<T>(payload: EncryptedPayload, base64Key: string): T {
