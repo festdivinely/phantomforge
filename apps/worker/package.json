@@ -1,0 +1,23 @@
+{
+  "name": "@pf/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pf/config": "workspace:*",
+    "@pf/connectors": "workspace:*",
+    "@pf/core": "workspace:*",
+    "@pf/db": "workspace:*",
+    "@pf/queue": "workspace:*",
+    "@pf/quota": "workspace:*",
+    "bullmq": "^5.34.6",
+    "playwright": "^1.49.1"
+  },
+  "devDependencies": { "tsx": "^4.19.2", "typescript": "^5.7.3" }
+}

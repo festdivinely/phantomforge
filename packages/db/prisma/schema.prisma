@@ -1,0 +1,430 @@
+// PhantomForge data model
+//
+// Reading order: auth (who) -> identities (which platform account) ->
+// agents & runs (what happened) -> leads (what we learned) -> governance.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- auth
+// Shapes below match better-auth's Prisma adapter + organization plugin.
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions    Session[]
+  accounts    Account[]
+  memberships Member[]
+  auditLogs   AuditLog[]
+
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id @default(cuid())
+  token                String   @unique
+  expiresAt            DateTime
+  ipAddress            String?
+  userAgent            String?
+  activeOrganizationId String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  members     Member[]
+  invitations Invitation[]
+  identities  Identity[]
+  agentConfigs AgentConfig[]
+  runs        Run[]
+  leads       Lead[]
+  schedules   Schedule[]
+  quotaUsages QuotaUsage[]
+  webhooks    Webhook[]
+  auditLogs   AuditLog[]
+
+  @@map("organization")
+}
+
+model Member {
+  id        String   @id @default(cuid())
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("member")
+}
+
+model Invitation {
+  id        String   @id @default(cuid())
+  email     String
+  role      String?
+  status    String   @default("pending")
+  expiresAt DateTime
+  inviterId String
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("invitation")
+}
+
+// ---------------------------------------------------------- identities
+
+enum Platform {
+  mock
+  linkedin
+}
+
+enum IdentityStatus {
+  active
+  expired
+  challenged
+  restricted
+  disabled
+}
+
+/// A logged-in platform account. The most sensitive row in the database:
+/// `encryptedCookies` is AES-256-GCM ciphertext, never plaintext, and is
+/// unreadable without PF_ENCRYPTION_KEY.
+model Identity {
+  id          String         @id @default(cuid())
+  platform    Platform
+  label       String
+  accountName String?
+  status      IdentityStatus @default(active)
+  statusReason String?
+
+  encryptedCookies Bytes
+  encryptionIv     Bytes
+  encryptionTag    Bytes
+
+  userAgent  String?
+  locale     String? @default("en-US")
+  timezoneId String?
+  proxyUrl   String?
+
+  lastValidatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  runs        Run[]
+  quotaUsages QuotaUsage[]
+  schedules   Schedule[]
+
+  @@index([organizationId, platform])
+  @@map("identity")
+}
+
+// ------------------------------------------------------- agents & runs
+
+/// A saved configuration of an agent: which agent key, with which input.
+/// The agent's *code* lives in @pf/connectors; this is the user's instance of it.
+model AgentConfig {
+  id          String   @id @default(cuid())
+  agentKey    String
+  name        String
+  input       Json
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  runs      Run[]
+  schedules Schedule[]
+
+  @@index([organizationId, agentKey])
+  @@map("agent_config")
+}
+
+enum RunStatus {
+  queued
+  running
+  succeeded
+  failed
+  cancelled
+  timed_out
+  quota_blocked
+}
+
+enum RunTrigger {
+  manual
+  schedule
+  api
+  retry
+}
+
+/// One execution of one agent with one identity.
+model Run {
+  id       String     @id @default(cuid())
+  agentKey String
+  status   RunStatus  @default(queued)
+  trigger  RunTrigger @default(manual)
+
+  input  Json
+  output Json?
+
+  processed Int @default(0)
+  skipped   Int @default(0)
+  failed    Int @default(0)
+
+  /// Resume marker, so an interrupted run continues instead of restarting.
+  checkpoint Json?
+
+  errorCode    String?
+  errorMessage String?
+  attempt      Int     @default(1)
+
+  queuedAt   DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  identityId     String?
+  identity       Identity?    @relation(fields: [identityId], references: [id], onDelete: SetNull)
+  agentConfigId  String?
+  agentConfig    AgentConfig? @relation(fields: [agentConfigId], references: [id], onDelete: SetNull)
+
+  logs      RunLog[]
+  artifacts RunArtifact[]
+  leadHits  LeadInteraction[]
+
+  @@index([organizationId, status, queuedAt])
+  @@index([identityId, queuedAt])
+  @@map("run")
+}
+
+model RunLog {
+  id      String   @id @default(cuid())
+  ts      DateTime @default(now())
+  level   String
+  message String
+  data    Json?
+
+  runId String
+  run   Run    @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, ts])
+  @@map("run_log")
+}
+
+/// Screenshots, DOM snapshots and exports. Stored in S3/MinIO; this is the pointer.
+model RunArtifact {
+  id          String   @id @default(cuid())
+  kind        String
+  storageKey  String
+  contentType String
+  sizeBytes   Int?
+  note        String?
+  capturedAt  DateTime @default(now())
+
+  runId String
+  run   Run    @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("run_artifact")
+}
+
+// ------------------------------------------------------------- leads
+
+/// A person, deduplicated across every run and agent that ever saw them.
+model Lead {
+  id         String  @id @default(cuid())
+  dedupeKey  String
+  platform   Platform
+  platformId String
+  profileUrl String?
+
+  fullName         String?
+  firstName        String?
+  lastName         String?
+  headline         String?
+  location         String?
+  company          String?
+  jobTitle         String?
+  avatarUrl        String?
+  email            String?
+  connectionDegree String?
+
+  raw Json @default("{}")
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  interactions LeadInteraction[]
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, company])
+  @@map("lead")
+}
+
+/// What we did to a lead, and when. The audit trail behind the lead graph.
+model LeadInteraction {
+  id        String   @id @default(cuid())
+  action    String
+  succeeded Boolean  @default(true)
+  detail    Json?
+  occurredAt DateTime @default(now())
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  runId  String?
+  run    Run?   @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, occurredAt])
+  @@map("lead_interaction")
+}
+
+// -------------------------------------------------------- governance
+
+/// Rolling per-identity, per-day action counters enforced by the quota governor.
+model QuotaUsage {
+  id     String   @id @default(cuid())
+  action String
+  day    DateTime @db.Date
+  used   Int      @default(0)
+  limit  Int
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  identityId     String
+  identity       Identity     @relation(fields: [identityId], references: [id], onDelete: Cascade)
+
+  @@unique([identityId, action, day])
+  @@map("quota_usage")
+}
+
+model Schedule {
+  id         String    @id @default(cuid())
+  cron       String
+  timezone   String    @default("UTC")
+  enabled    Boolean   @default(true)
+  lastRunAt  DateTime?
+  nextRunAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agentConfigId  String
+  agentConfig    AgentConfig  @relation(fields: [agentConfigId], references: [id], onDelete: Cascade)
+  identityId     String
+  identity       Identity     @relation(fields: [identityId], references: [id], onDelete: Cascade)
+
+  @@index([enabled, nextRunAt])
+  @@map("schedule")
+}
+
+/// Which selector strategy actually matched, over time. When a low-ranked
+/// fallback starts winning, the platform changed its DOM - fix it before it breaks.
+model SelectorHealth {
+  id            String   @id @default(cuid())
+  platform      Platform
+  selectorName  String
+  strategyName  String
+  strategyIndex Int
+  hits          Int      @default(0)
+  lastSeenAt    DateTime @updatedAt
+
+  @@unique([platform, selectorName, strategyName])
+  @@map("selector_health")
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  url       String
+  events    String[]
+  secret    String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("webhook")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@map("audit_log")
+}
