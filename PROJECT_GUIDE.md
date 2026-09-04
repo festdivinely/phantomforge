@@ -136,6 +136,22 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-09-04 — Phase 2 (Identity vault) built, not yet tested.**
+Added the ability to save a real logged-in account for the system to act
+through, safely. Specifically:
+- A new "Identities" page in the dashboard: add an account, paste its
+  session cookie, give it a label.
+- The cookie is encrypted the instant it arrives at the server, before it
+  ever touches the database - even someone with direct database access
+  can't read it without the separate encryption key.
+- A "Validate" button opens a real, invisible browser using that saved
+  login and checks whether it's still logged in - the first time this
+  project has driven a real browser with a real session, rather than the
+  fake ("mock") platform.
+- Still no real LinkedIn *actions* yet (connecting, messaging, posting) -
+  this phase only proves login storage and checking work. That's next.
+Not yet clicked through in a browser - that's the next verification step.
+
 **2026-09-04 — Phase 1 complete: the dashboard works, tested in a real browser.**
 Opened the website, clicked "Run" on the mock profile-collector, and watched
 it go from queued to running to succeeded live, with logs appearing and the

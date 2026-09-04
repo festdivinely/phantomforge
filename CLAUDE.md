@@ -15,6 +15,15 @@ around it — queue, workers, quota, checkpointing, observability — is the pro
 
 ## Current state
 
+**Phase 2 (identity vault) — built, not yet verified.** Identity CRUD +
+encryption (`apps/api/src/routes/identities.ts`), a dedicated validation
+queue (`packages/queue`: `identityQueue`/`IDENTITY_QUEUE_NAME`), the worker's
+`loadIdentitySession()` (`apps/worker/src/identity-session.ts`, the only
+function that ever holds a plaintext cookie) and `executeIdentityValidation`,
+and a dashboard page (`apps/web/app/identities`). The Run executor's old
+`cookies: []` TODO is also closed - real Runs now load a real identity's
+session when one is attached.
+
 **Phase 0 (foundation) — verified working**, not just written. `pnpm install`,
 `pnpm browsers`, `pnpm infra:up`, `pnpm db:migrate`, `pnpm db:seed`, and
 `pnpm typecheck` (all 9 packages) all run clean on the dev machine.

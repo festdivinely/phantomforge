@@ -36,11 +36,17 @@ discover their platform cannot report on it. Do not skip it.
 
 ## Phase 2 — Identity vault
 
-- [ ] Capture LinkedIn cookies (browser extension or manual `li_at` paste)
-- [ ] Encrypt with `@pf/core/crypto`, store on `Identity`
-- [ ] Worker decrypts and injects into the browser context
-- [ ] `validateSession()` wired into the run lifecycle, status surfaced in UI
-- [ ] Re-authentication flow when a session expires
+- [x] Capture LinkedIn cookies (manual `li_at` paste, via the dashboard)
+- [x] Encrypt with `@pf/core/crypto`, store on `Identity`
+- [x] Worker decrypts and injects into the browser context
+- [x] `validateSession()` reachable from the UI (POST .../validate, polled)
+- [ ] Re-authentication flow when a session expires (surfaced as a status,
+      no guided re-auth UI yet)
+- [ ] Wire a saved Identity into the trigger-a-run UI (currently every Run
+      still sends identityId: null - the plumbing exists, the form doesn't
+      expose it yet)
+
+Not yet verified in a browser - do that before calling this phase done.
 
 ---
 

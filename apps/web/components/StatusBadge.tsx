@@ -1,4 +1,5 @@
 const COLORS: Record<string, string> = {
+  // Run statuses
   queued: 'bg-neutral-800 text-neutral-300',
   running: 'bg-blue-950 text-blue-400',
   succeeded: 'bg-emerald-950 text-emerald-400',
@@ -6,6 +7,12 @@ const COLORS: Record<string, string> = {
   cancelled: 'bg-neutral-800 text-neutral-400',
   timed_out: 'bg-amber-950 text-amber-400',
   quota_blocked: 'bg-purple-950 text-purple-400',
+  // Identity statuses
+  active: 'bg-emerald-950 text-emerald-400',
+  expired: 'bg-amber-950 text-amber-400',
+  challenged: 'bg-purple-950 text-purple-400',
+  restricted: 'bg-red-950 text-red-400',
+  disabled: 'bg-neutral-800 text-neutral-400',
 };
 
 export function StatusBadge({ status }: { status: string }) {

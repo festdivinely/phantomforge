@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { fetchAgents } from '@/lib/api';
 import { AgentList } from '@/components/AgentList';
 
@@ -11,6 +12,12 @@ export default async function HomePage() {
         Pick an agent, edit its input, and run it. New here? Read{' '}
         <code className="text-neutral-300">PROJECT_GUIDE.md</code> in the project root.
       </p>
+      <Link
+        href="/identities"
+        className="mt-3 inline-block text-sm text-neutral-400 underline hover:text-neutral-200"
+      >
+        Manage identities &rarr;
+      </Link>
 
       <section className="mt-10">
         <h2 className="text-sm font-medium uppercase tracking-wider text-neutral-500">

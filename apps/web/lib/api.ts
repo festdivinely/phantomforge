@@ -99,3 +99,46 @@ export const TERMINAL_STATUSES = new Set([
   'timed_out',
   'quota_blocked',
 ]);
+
+export interface IdentitySummary {
+  id: string;
+  platform: string;
+  label: string;
+  accountName: string | null;
+  status: string;
+  statusReason: string | null;
+  lastValidatedAt: string | null;
+  createdAt: string;
+}
+
+export function fetchIdentities(): Promise<IdentitySummary[]> {
+  return apiFetch<IdentitySummary[]>(`/api/identities?organizationId=${DEV_ORG_ID}`);
+}
+
+export function fetchIdentity(id: string): Promise<IdentitySummary> {
+  return apiFetch<IdentitySummary>(`/api/identities/${id}`);
+}
+
+export interface IdentityCookieInput {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+}
+
+export interface CreateIdentityPayload {
+  platform: 'mock' | 'linkedin';
+  label: string;
+  cookies: IdentityCookieInput[];
+}
+
+export function createIdentity(payload: CreateIdentityPayload): Promise<IdentitySummary> {
+  return apiFetch<IdentitySummary>('/api/identities', {
+    method: 'POST',
+    body: JSON.stringify({ organizationId: DEV_ORG_ID, ...payload }),
+  });
+}
+
+export function validateIdentity(id: string): Promise<{ queued: boolean }> {
+  return apiFetch(`/api/identities/${id}/validate`, { method: 'POST' });
+}

@@ -41,4 +41,27 @@ export async function cancelRun(runId: string): Promise<boolean> {
   return true;
 }
 
+export const IDENTITY_QUEUE_NAME = 'pf-identity-validation';
+
+export interface IdentityValidationJobData {
+  identityId: string;
+}
+
+export const identityQueue = new Queue<IdentityValidationJobData>(IDENTITY_QUEUE_NAME, {
+  connection,
+  defaultJobOptions: {
+    attempts: 1,
+    removeOnComplete: { age: 3_600, count: 100 },
+    removeOnFail: { age: 86_400 },
+  },
+});
+
+export async function enqueueIdentityValidation(identityId: string): Promise<void> {
+  await identityQueue.add(
+    'validate-identity',
+    { identityId },
+    { jobId: `validate-${identityId}-${Date.now()}` },
+  );
+}
+
 export { Queue, QueueEvents };
