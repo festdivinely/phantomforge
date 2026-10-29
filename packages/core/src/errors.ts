@@ -57,13 +57,24 @@ export class QuotaExceededError extends PhantomForgeError {
   }
 }
 
-/** A selector strategy chain exhausted itself. Feeds selector-health telemetry. */
+/**
+ * A selector strategy chain exhausted itself. Feeds selector-health telemetry.
+ * Not retried: on a real account, repeating a run that can't find its buttons
+ * means navigating oddly again and again. A person fixes the selector first.
+ */
 export class SelectorNotFoundError extends PhantomForgeError {
   constructor(selectorName: string, triedStrategies: number) {
-    super('SELECTOR_NOT_FOUND', `No strategy matched selector "${selectorName}"`, {
-      retryable: true,
+    super('SELECTOR_NOT_FOUND', `LinkedIn's page has changed: could not find "${selectorName}"`, {
+      retryable: false,
       context: { selectorName, triedStrategies },
     });
+  }
+}
+
+/** The platform itself said "slow down" (e.g. the weekly invitation limit). Stop for today. */
+export class RateLimitedError extends PhantomForgeError {
+  constructor(message: string, context = {}) {
+    super('RATE_LIMITED', message, { retryable: false, context });
   }
 }
 

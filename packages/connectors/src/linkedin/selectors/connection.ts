@@ -33,10 +33,12 @@ export const sendInviteButton = selector('send-invite-button', [
 
 // On the invitation manager the accessible name is the full aria-label,
 // e.g. "Accept Jane Doe's invitation", so match the start, not the whole name.
+// Every strategy is tied to an invitation, so no fallback can ever click some
+// other "Accept" on the page (a cookie banner, a terms dialog).
 export const acceptInviteButton = selector('accept-invite-button', [
   byRole('aria-accept-invitation', 'button', { name: /^accept\b.*invitation/i }),
-  byRole('aria-accept', 'button', { name: /^accept$/i }),
-  byCss('aria-label-accept', 'button[aria-label*="Accept" i]'),
+  byCss('aria-label-accept-invitation', 'button[aria-label^="Accept" i][aria-label*="invitation" i]'),
+  byCss('invitation-card-accept', '[class*="invitation-card"] button:has-text("Accept")'),
 ]);
 
 /** The invitation manager's "nothing here" state, so empty is not mistaken for a broken page. */

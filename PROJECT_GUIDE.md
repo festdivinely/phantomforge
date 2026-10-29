@@ -136,6 +136,20 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — Full safety audit before the first real account.**
+Every part that can touch a LinkedIn account was reviewed and 11 problems
+were fixed (details: `docs/audits/2026-10-29-pre-real-account.md`). The most
+important: only **one job per account** can run at a time; **Cancel now
+really stops** a running job within seconds; connection requests have a
+**weekly cap** (80) as well as a daily one; a newly added real account
+**warms up** (a quarter of the limits in week one, rising to full by week
+four); the bot **stops the moment LinkedIn shows a warning** such as "weekly
+invitation limit"; and when something unexpected happens, a **real
+screenshot** is saved so we can see what the bot saw. All of it was tested
+on the fake LinkedIn. Still to build before real growth actions: remote
+login, sending requests (with the targeting rules), withdrawing on the real
+site.
+
 **2026-10-29 — Drafting now uses your Claude subscription, and works.**
 Instead of the pay-per-use API, the worker now runs **Claude Code** (the
 same Claude you chat with, in its command-line form) logged in with the

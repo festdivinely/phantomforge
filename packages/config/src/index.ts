@@ -85,6 +85,8 @@ const envSchema = z.object({
   RUN_TIMEOUT_MS: z.coerce.number().int().positive().default(900_000),
 
   QUOTA_CONNECTIONS_PER_DAY: z.coerce.number().int().nonnegative().default(20),
+  /** Rolling 7-day cap on connection requests; LinkedIn's own weekly cap is ~100. */
+  QUOTA_CONNECTIONS_PER_WEEK: z.coerce.number().int().nonnegative().default(80),
   QUOTA_MESSAGES_PER_DAY: z.coerce.number().int().nonnegative().default(30),
   QUOTA_PROFILE_VIEWS_PER_DAY: z.coerce.number().int().nonnegative().default(80),
   QUOTA_POSTS_PER_DAY: z.coerce.number().int().nonnegative().default(3),

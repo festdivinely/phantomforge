@@ -1,10 +1,9 @@
 import { z } from 'zod';
-import { AuthExpiredError, ChallengeRequiredError, SelectorNotFoundError } from '@pf/core';
-import type { Page } from 'playwright';
+import { SelectorNotFoundError } from '@pf/core';
 import { defineAgent } from '../../base/agent.js';
 import type { AgentContext } from '../../base/context.js';
 import { resolveSelector } from '../../base/selector.js';
-import { LINKEDIN_ORIGIN } from '../session.js';
+import { assertSafeToContinue, LINKEDIN_ORIGIN } from '../session.js';
 import { acceptInviteButton, noInvitationsMessage } from '../selectors/connection.js';
 
 export const INVITATIONS_URL = `${LINKEDIN_ORIGIN}/mynetwork/invitation-manager/received/`;
@@ -18,17 +17,6 @@ const inputSchema = z.object({
     .default(20)
     .describe('Most invitations to accept in one run; the rest wait for the next run'),
 });
-
-/** Stop the whole run on a login wall or checkpoint - never keep clicking into one. */
-function assertStillLoggedIn(page: Page): void {
-  const url = page.url();
-  if (url.includes('/checkpoint/') || url.includes('/challenge')) {
-    throw new ChallengeRequiredError('LinkedIn showed a verification checkpoint', { url });
-  }
-  if (url.includes('/login') || url.includes('/authwall')) {
-    throw new AuthExpiredError('LinkedIn session expired - paste a new li_at cookie', { url });
-  }
-}
 
 /** "Accept Jane Doe's invitation" -> "Jane Doe"; falls back to the raw label. */
 function inviterName(label: string): string {
@@ -66,7 +54,7 @@ export const acceptInvitationsAgent = defineAgent({
     const results: Array<{ inviter: string; ok: boolean }> = [];
 
     await page.goto(INVITATIONS_URL, { waitUntil: 'domcontentloaded' });
-    assertStillLoggedIn(page);
+    await assertSafeToContinue(page);
 
     let button = await findNextAccept(ctx);
     if (!button) {
@@ -100,7 +88,7 @@ export const acceptInvitationsAgent = defineAgent({
         .waitFor({ state: 'detached', timeout: 10_000 })
         .then(() => true)
         .catch(() => false);
-      assertStillLoggedIn(page);
+      await assertSafeToContinue(page);
 
       await ctx.recordActivity({ kind: 'connection_accept', ok: landed, targetName: name });
 

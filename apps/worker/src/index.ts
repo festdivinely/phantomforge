@@ -1,4 +1,4 @@
-import { Worker, type Job } from 'bullmq';
+import { DelayedError, Worker, type Job } from 'bullmq';
 import { chromium, type Browser } from 'playwright';
 import { env } from '@pf/config';
 import {
@@ -17,7 +17,7 @@ import { createAgentContext } from './context.js';
 import { loadIdentitySession } from './identity-session.js';
 import { postUrlFrom, settlePost } from './posts.js';
 import { startScheduler } from './scheduler.js';
-import { startTelegramBot } from './telegram.js';
+import { notifyOwner, startTelegramBot } from './telegram.js';
 import { executeDrafting, startAutoDrafter } from './drafter.js';
 
 /**
@@ -37,7 +37,31 @@ async function getBrowser(): Promise<Browser> {
 
 const ANONYMOUS_SESSION: IdentitySession = { identityId: 'anonymous', cookies: [] };
 
-async function executeRun(job: Job<RunJobData>): Promise<void> {
+/** How often a running run checks whether the owner cancelled it. */
+const CANCEL_POLL_MS = 3_000;
+/** When an account is busy, try the run again this much later. */
+const BUSY_RETRY_MS = 60_000;
+
+/**
+ * One run per account at a time. Two runs on one account at once would double
+ * its action rate and open two parallel sessions - both look like a bot.
+ * Returns a release function, or null when the account is busy.
+ */
+async function lockIdentity(identityId: string, runId: string): Promise<(() => Promise<void>) | null> {
+  const key = `pf:identity-busy:${identityId}`;
+  const ok = await connection.set(key, runId, 'PX', env.RUN_TIMEOUT_MS + 60_000, 'NX');
+  if (ok !== 'OK') return null;
+  return async () => {
+    if ((await connection.get(key)) === runId) await connection.del(key);
+  };
+}
+
+/** Final run states never overwrite a cancel the owner already made. */
+async function finishRun(runId: string, data: Parameters<typeof prisma.run.updateMany>[0]['data']) {
+  await prisma.run.updateMany({ where: { id: runId, status: { not: 'cancelled' } }, data });
+}
+
+async function executeRun(job: Job<RunJobData>, token?: string): Promise<void> {
   const { runId, organizationId, agentKey, identityId } = job.data;
 
   const run = await prisma.run.findUnique({ where: { id: runId } });
@@ -47,6 +71,31 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
   const agent = getAgent(agentKey);
   const connector = getConnector(agent.platform);
 
+  // Never act on an account that is logged out, being checked or restricted.
+  if (identityId) {
+    const identity = await prisma.identity.findUnique({
+      where: { id: identityId },
+      select: { status: true, statusReason: true },
+    });
+    if (!identity || identity.status !== 'active') {
+      const why = identity ? `account is ${identity.status}${identity.statusReason ? `: ${identity.statusReason}` : ''}` : 'account not found';
+      await finishRun(runId, {
+        status: 'failed',
+        finishedAt: new Date(),
+        errorCode: 'AUTH_EXPIRED',
+        errorMessage: `Not started - ${why}`,
+      });
+      await settlePost(runId, { ok: false, error: `Not started - ${why}` });
+      return;
+    }
+  }
+
+  const release = identityId ? await lockIdentity(identityId, runId) : async () => undefined;
+  if (!release) {
+    await job.moveToDelayed(Date.now() + BUSY_RETRY_MS, token);
+    throw new DelayedError();
+  }
+
   await prisma.run.update({
     where: { id: runId },
     data: { status: 'running', startedAt: new Date(), attempt: job.attemptsMade + 1 },
@@ -54,6 +103,15 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.RUN_TIMEOUT_MS);
+  // The Cancel button sets the run to cancelled; stop clicking within seconds.
+  const cancelWatch = setInterval(() => {
+    void prisma.run
+      .findUnique({ where: { id: runId }, select: { status: true } })
+      .then((r) => {
+        if (r?.status === 'cancelled') controller.abort();
+      })
+      .catch(() => undefined);
+  }, CANCEL_POLL_MS);
 
   // Declared out here so `finally` can close them; created inside the try so a
   // failure while loading the session (e.g. a cookie that won't decrypt) marks
@@ -78,16 +136,13 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
     const input = agent.inputSchema.parse(run.input);
     const outcome = await agent.execute(ctx, input);
 
-    await prisma.run.update({
-      where: { id: runId },
-      data: {
-        status: 'succeeded',
-        finishedAt: new Date(),
-        processed: outcome.processed,
-        skipped: outcome.skipped,
-        failed: outcome.failed,
-        output: { results: outcome.results } as object,
-      },
+    await finishRun(runId, {
+      status: 'succeeded',
+      finishedAt: new Date(),
+      processed: outcome.processed,
+      skipped: outcome.skipped,
+      failed: outcome.failed,
+      output: { results: outcome.results } as object,
     });
     await settlePost(
       runId,
@@ -98,16 +153,27 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
   } catch (error) {
     const pfError = error instanceof PhantomForgeError ? error : null;
     const message = error instanceof Error ? error.message : String(error);
-    await prisma.run.update({
-      where: { id: runId },
-      data: {
-        status: pfError?.code === 'QUOTA_EXCEEDED' ? 'quota_blocked' : 'failed',
+    if (controller.signal.aborted) {
+      // Cancelled by the owner (the run row already says so) or timed out.
+      await finishRun(runId, {
+        status: 'timed_out',
         finishedAt: new Date(),
-        errorCode: pfError?.code ?? 'UNKNOWN',
-        errorMessage: message,
-      },
+        errorCode: 'TIMEOUT',
+        errorMessage: `Stopped after ${Math.round(env.RUN_TIMEOUT_MS / 60_000)} minutes`,
+      });
+      await settlePost(runId, { ok: false, error: 'Stopped before it finished' });
+      return;
+    }
+    await finishRun(runId, {
+      status: pfError?.code === 'QUOTA_EXCEEDED' ? 'quota_blocked' : 'failed',
+      finishedAt: new Date(),
+      errorCode: pfError?.code ?? 'UNKNOWN',
+      errorMessage: message,
     });
     await settlePost(runId, { ok: false, error: message });
+    if (pfError?.code === 'RATE_LIMITED') {
+      await notifyOwner(`⚠️ LinkedIn showed a limit warning, so the run stopped: ${message}`);
+    }
 
     // A login wall or checkpoint means the account needs its owner: mark it,
     // so schedules stop running on it until the owner fixes it.
@@ -125,8 +191,10 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
     if (isRetryable(error)) throw error;
   } finally {
     clearTimeout(timeout);
+    clearInterval(cancelWatch);
     await page?.close().catch(() => undefined);
     await context?.close().catch(() => undefined);
+    await release();
   }
 }
 

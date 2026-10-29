@@ -17,6 +17,7 @@
     "@pf/db": "workspace:*",
     "@pf/queue": "workspace:*",
     "@pf/quota": "workspace:*",
+    "@pf/storage": "workspace:^",
     "bullmq": "^5.34.6",
     "playwright": "^1.49.1"
   },

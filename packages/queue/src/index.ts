@@ -34,11 +34,20 @@ export async function enqueueRun(data: RunJobData): Promise<string> {
   return job.id ?? data.runId;
 }
 
+/**
+ * Removes a run that hasn't started yet. A run that is already running can't
+ * be removed (BullMQ locks it); the worker stops it instead when it sees the
+ * run marked cancelled.
+ */
 export async function cancelRun(runId: string): Promise<boolean> {
   const job = await runQueue.getJob(runId);
   if (!job) return false;
-  await job.remove();
-  return true;
+  try {
+    await job.remove();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export const IDENTITY_QUEUE_NAME = 'pf-identity-validation';

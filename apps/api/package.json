@@ -18,6 +18,7 @@
     "@pf/db": "workspace:*",
     "@pf/queue": "workspace:*",
     "@pf/quota": "workspace:^",
+    "@pf/storage": "workspace:^",
     "fastify": "^5.2.0",
     "zod": "^3.24.1"
   },

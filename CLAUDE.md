@@ -66,6 +66,21 @@ invented facts about the owner - keep that rule. Bad key / bad request /
 refusal are `UnrecoverableError` (no retry); rate limits and network errors
 retry.
 
+**Safety audit 2026-10-29** (`docs/audits/2026-10-29-pre-real-account.md`):
+one run per identity (Redis lock `pf:identity-busy:<id>` in the worker; a busy
+run is delayed, not failed); cancel aborts running runs (worker polls run
+status) and `finishRun()` never overwrites `cancelled`; quota counts the
+owner's day, has a rolling weekly cap on `connection_request` and a warm-up
+for non-mock identities; LinkedIn agents must call `assertSafeToContinue(page)`
+(linkedin/session.ts) after every navigation and action; `SelectorNotFoundError`
+is not retryable; `captureArtifact` really uploads via `@pf/storage`.
+Targeting for `linkedin.send-connection` (owner, 2026-10-29): people who want
+to connect (open to connect, #opentoconnect, LION, active networkers); exclude
+CEOs, founders, senior executives and tech professionals for now; handle the
+"Add a note" dialog. The owner accepts the ToS risk of browser automation on
+his own account; no stealth tooling (fingerprint spoofing, CAPTCHA solving,
+proxies, fake accounts) - human-like pacing and limits only.
+
 **Telegram owner bot is implemented (2026-10-29):** optional long polling in
 the worker, owner-chat restriction, post approve/edit/skip, daily activity
 summary, and identity/quota alerts. It requires `TELEGRAM_BOT_TOKEN` and

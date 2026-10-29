@@ -4,6 +4,7 @@ import type { Checkpoint, LogLevel, QuotaAction, RunArtifact } from '@pf/core';
 import { leadDedupeKey, leadSchema } from '@pf/core';
 import { prisma } from '@pf/db';
 import { consumeQuota, pace } from '@pf/quota';
+import { putObject } from '@pf/storage';
 
 /**
  * Builds the sandbox an agent runs inside.
@@ -111,18 +112,20 @@ export function createAgentContext(params: {
     },
 
     async captureArtifact(kind: RunArtifact['kind'], note?: string): Promise<RunArtifact> {
-      // TODO(Phase 7): upload to S3/RustFS and store the real key.
-      const key = `runs/${runId}/${kind}-${Date.now()}.png`;
-      const artifact: RunArtifact = {
-        kind,
-        key,
-        contentType: kind === 'screenshot' ? 'image/png' : 'text/plain',
-        capturedAt: new Date().toISOString(),
-        note,
-      };
-      await prisma.runArtifact.create({
-        data: { runId, kind, storageKey: key, contentType: artifact.contentType, note },
-      });
+      const isShot = kind === 'screenshot';
+      const contentType = isShot ? 'image/png' : 'text/html';
+      const key = `runs/${runId}/${kind}-${Date.now()}.${isShot ? 'png' : 'html'}`;
+      // A failed capture must never turn a clean stop into a crash.
+      try {
+        const body = isShot
+          ? await page.screenshot({ fullPage: false, timeout: 10_000 })
+          : Buffer.from(await page.content(), 'utf8');
+        await putObject(key, new Uint8Array(body), contentType);
+      } catch (error) {
+        console.error(`[artifact] ${runId} could not save ${kind}:`, error instanceof Error ? error.message : error);
+      }
+      const artifact: RunArtifact = { kind, key, contentType, capturedAt: new Date().toISOString(), note };
+      await prisma.runArtifact.create({ data: { runId, kind, storageKey: key, contentType, note } });
       return artifact;
     },
   };
