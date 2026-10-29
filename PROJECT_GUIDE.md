@@ -136,6 +136,16 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — Drafting now uses your Claude subscription, and works.**
+Instead of the pay-per-use API, the worker now runs **Claude Code** (the
+same Claude you chat with, in its command-line form) logged in with the
+owner's Claude subscription, so drafting has no extra cost. Claude Code runs
+with every tool switched off, so it can only write text back. Tested for
+real: 3 drafts in 27 seconds, saved as waiting for approval, with no
+invented facts. The pay-per-use API remains as an option (`DRAFT_ENGINE=api`).
+Decided at the same time: PhantomForge stays **LinkedIn only**; other
+platforms are a separate future project (decision 0006).
+
 **2026-10-29 — Claude drafts LinkedIn posts (built; waiting for an API key to test).**
 Each account now has a **posting profile**: who you are, who the posts are
 for, topics, tone, what never to post about, and a few of your own past

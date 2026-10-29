@@ -1,4 +1,4 @@
-import { env } from '@pf/config';
+import { draftingEnabled, draftingOffReason, env } from '@pf/config';
 import { prisma } from '@pf/db';
 import { enqueueDrafting } from '@pf/queue';
 import { checkQuota } from '@pf/quota';
@@ -179,8 +179,8 @@ export function startTelegramBot(): () => void {
   }
 
   async function requestDrafts(chatId: string, hint: string): Promise<void> {
-    if (!env.ANTHROPIC_API_KEY) {
-      await send(chatId, 'Drafting is off: ANTHROPIC_API_KEY is empty in the server .env.');
+    if (!draftingEnabled) {
+      await send(chatId, escapeHtml(draftingOffReason));
       return;
     }
     const profiles = await prisma.postingProfile.findMany({

@@ -50,7 +50,16 @@ const envSchema = z.object({
   DAILY_SUMMARY_HOUR: z.coerce.number().int().min(0).max(23).default(20),
   OWNER_TIMEZONE: z.string().default('Africa/Lagos'),
 
-  /** Claude API key for drafting posts. Leave empty to run without drafting. */
+  /**
+   * How post drafts are written:
+   * - claude-code: the Claude Code CLI (`claude -p`) logged in with the owner's
+   *   Claude subscription - no per-use API cost. For the owner's own accounts.
+   * - api: the Anthropic API with ANTHROPIC_API_KEY, billed per use.
+   */
+  DRAFT_ENGINE: z.enum(['claude-code', 'api']).default('claude-code'),
+  /** The Claude Code command; set a full path if `claude` isn't on PATH. */
+  CLAUDE_CLI: z.string().default('claude'),
+  /** Only for DRAFT_ENGINE=api. */
   ANTHROPIC_API_KEY: z
     .string()
     .optional()
@@ -103,3 +112,7 @@ export const env: Env = parseEnv();
 
 export const isProduction = env.NODE_ENV === 'production';
 export const isDevelopment = env.NODE_ENV === 'development';
+
+/** Whether post drafting is configured (the CLI engine is checked when it runs). */
+export const draftingEnabled = env.DRAFT_ENGINE === 'claude-code' || Boolean(env.ANTHROPIC_API_KEY);
+export const draftingOffReason = 'Drafting is off: DRAFT_ENGINE=api but ANTHROPIC_API_KEY is empty in the server .env.';

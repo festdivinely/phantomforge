@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { env } from '@pf/config';
+import { draftingEnabled, draftingOffReason } from '@pf/config';
 import { prisma } from '@pf/db';
 import { draftQueue, enqueueDrafting } from '@pf/queue';
 
@@ -35,7 +35,7 @@ export async function draftingRoutes(app: FastifyInstance) {
     const profile = await prisma.postingProfile.findUnique({ where: { identityId: id } });
     return {
       ...(profile ?? profileSchema.parse({})),
-      draftingEnabled: Boolean(env.ANTHROPIC_API_KEY),
+      draftingEnabled,
     };
   });
 
@@ -53,8 +53,8 @@ export async function draftingRoutes(app: FastifyInstance) {
 
   app.post('/posts/draft', async (req, reply) => {
     const body = draftRequestSchema.parse(req.body);
-    if (!env.ANTHROPIC_API_KEY) {
-      return reply.code(503).send({ error: 'Drafting is off: ANTHROPIC_API_KEY is empty in the server .env.' });
+    if (!draftingEnabled) {
+      return reply.code(503).send({ error: draftingOffReason });
     }
     const profile = await prisma.postingProfile.findUnique({ where: { identityId: body.identityId } });
     if (!profile || !(profile.about.trim() || profile.topics.trim())) {

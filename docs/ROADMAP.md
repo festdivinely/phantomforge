@@ -123,16 +123,18 @@ Good posts bring connections *to* the account - the safest growth of all.
       `/api/posts`, `/api/posts/:id/approve` (text can be edited while
       approving), `/reject`. The scheduler publishes approved posts when due.
       Verified end to end with `mock.create-post`.
-- [ ] Post drafts written by Claude (`claude-opus-5-5`) - **built 2026-10-29,
-      waiting for the owner's Anthropic API key to test with real calls**:
-      per-account `PostingProfile` (about, audience, topics, tone, avoid,
-      example posts, auto-draft), `pf-post-drafts` queue run by the worker
-      (`apps/worker/src/drafter.ts`, structured JSON output, refusal
-      fallback on), drafts saved as `pending_approval` with source `claude`,
-      Telegram "new drafts" message and `/draft [idea]`, phone app "Draft
-      with Claude" + posting profile screen, daily auto top-up at
-      DRAFT_HOUR. Verified without a key: routes, validation, and a clean
-      one-attempt failure with a readable reason.
+- [x] Post drafts written by Claude - verified 2026-10-29 with real calls:
+      3 drafts in 27 s via the Claude Code CLI on the owner's subscription
+      (`DRAFT_ENGINE=claude-code`, no per-use cost; `api` engine with
+      ANTHROPIC_API_KEY kept as an option). Per-account `PostingProfile`
+      (about, audience, topics, tone, avoid, example posts, auto-draft),
+      `pf-post-drafts` queue run by the worker (`apps/worker/src/drafter.ts`,
+      structured JSON output, no tools for the CLI), drafts saved as
+      `pending_approval` with source `claude`, Telegram "new drafts" message
+      and `/draft [idea]`, phone app "Draft with Claude" + posting profile
+      screen, daily auto top-up at DRAFT_HOUR. See decision 0006.
+- [ ] Images for posts (quote cards / branded graphics rendered locally) -
+      idea only, not decided
 - [ ] `linkedin.create-post` (decide official LinkedIn API vs browser agent in
       a decision record first)
 - [ ] Remember which posts got the most reactions, to guide future drafts

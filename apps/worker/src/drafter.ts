@@ -1,7 +1,11 @@
+import { spawn } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
 import { jsonSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/json-schema';
 import { UnrecoverableError, type Job } from 'bullmq';
-import { env } from '@pf/config';
+import { draftingEnabled, draftingOffReason, env } from '@pf/config';
 import { prisma } from '@pf/db';
 import { enqueueDrafting, type DraftJobData } from '@pf/queue';
 import { notifyOwner } from './telegram.js';
@@ -10,12 +14,22 @@ import { notifyOwner } from './telegram.js';
  * Claude drafts LinkedIn posts in the owner's voice. Drafts are only ever
  * saved as `pending_approval`: the owner approves, edits or skips each one in
  * the phone app or Telegram, and only approved posts are published.
+ *
+ * Two engines (DRAFT_ENGINE): `claude-code` runs the Claude Code CLI logged in
+ * with the owner's Claude subscription (no per-use cost; for the owner's own
+ * accounts), `api` calls the Anthropic API with ANTHROPIC_API_KEY.
  */
 
-const MODEL = 'claude-opus-5-5';
+const API_MODEL = 'claude-opus-5-5';
 const MAX_POST_LENGTH = 3000;
+const CLI_TIMEOUT_MS = 5 * 60_000;
 
-const DRAFTS_FORMAT = jsonSchemaOutputFormat({
+interface DraftedPost {
+  topic: string;
+  text: string;
+}
+
+const DRAFTS_SCHEMA = {
   type: 'object',
   properties: {
     posts: {
@@ -33,7 +47,7 @@ const DRAFTS_FORMAT = jsonSchemaOutputFormat({
   },
   required: ['posts'],
   additionalProperties: false,
-} as const);
+} as const;
 
 const SYSTEM_PROMPT = `You write LinkedIn posts for one person, in their own voice, to grow their network: posts that people in their audience want to read, react to and connect over.
 
@@ -50,7 +64,9 @@ Honesty rules - these matter more than anything else:
 - No invented statistics or quotes. No engagement bait ("comment YES", "like if you agree", "agree?").
 - Respect everything listed under "avoid".
 
-Variety: do not repeat the topics, openings or angles of the recent posts you are shown, and do not resemble the posts the owner skipped.`;
+Variety: do not repeat the topics, openings or angles of the recent posts you are shown, and do not resemble the posts the owner skipped.
+
+Reply only with the requested JSON.`;
 
 function section(title: string, body: string | undefined): string {
   const text = body?.trim();
@@ -102,22 +118,104 @@ async function buildPrompt(identityId: string, count: number, hint?: string): Pr
     .join('\n\n');
 }
 
-let client: Anthropic | undefined;
+// --- Engine: Claude Code CLI (owner's subscription) --------------------------
 
-async function askClaude(prompt: string) {
-  if (!env.ANTHROPIC_API_KEY) {
-    throw new UnrecoverableError('Drafting is off: ANTHROPIC_API_KEY is empty in the server .env.');
-  }
-  client ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+interface CliResult {
+  is_error?: boolean;
+  subtype?: string;
+  result?: string;
+  api_error_status?: number | null;
+  structured_output?: { posts?: DraftedPost[] };
+}
+
+/** Runs `claude -p` with no tools: it can only write text back, nothing else. */
+async function draftWithClaudeCode(prompt: string): Promise<DraftedPost[]> {
+  // An empty folder, so the CLI picks up no project files or CLAUDE.md.
+  const cwd = await mkdtemp(join(tmpdir(), 'pf-draft-'));
+  // Without an API key in its environment, the CLI uses its claude.ai login.
+  const childEnv = { ...process.env };
+  delete childEnv.ANTHROPIC_API_KEY;
+  delete childEnv.ANTHROPIC_AUTH_TOKEN;
+
+  const args = [
+    '-p',
+    '--output-format', 'json',
+    '--json-schema', JSON.stringify(DRAFTS_SCHEMA),
+    '--system-prompt', SYSTEM_PROMPT,
+    '--tools', '',
+    '--strict-mcp-config',
+    '--no-session-persistence',
+  ];
+
   try {
-    const response = await client.beta.messages.parse({
-      model: MODEL,
+    const { code, stdout, stderr } = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
+      (resolve, reject) => {
+        const child = spawn(env.CLAUDE_CLI, args, { cwd, env: childEnv, stdio: ['pipe', 'pipe', 'pipe'] });
+        let stdout = '';
+        let stderr = '';
+        const timer = setTimeout(() => child.kill(), CLI_TIMEOUT_MS);
+        child.stdout.on('data', (d: Buffer) => (stdout += d.toString()));
+        child.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
+        child.on('error', (error: NodeJS.ErrnoException) => {
+          clearTimeout(timer);
+          reject(
+            error.code === 'ENOENT'
+              ? new UnrecoverableError(`Claude Code isn't installed on the server (no "${env.CLAUDE_CLI}" command).`)
+              : error,
+          );
+        });
+        child.on('close', (exitCode) => {
+          clearTimeout(timer);
+          resolve({ code: exitCode, stdout, stderr });
+        });
+        // The prompt goes in through stdin: no command-line length limit.
+        child.stdin.end(prompt);
+      },
+    );
+
+    let parsed: CliResult | undefined;
+    try {
+      parsed = JSON.parse(stdout) as CliResult;
+    } catch {
+      parsed = undefined;
+    }
+    if (!parsed) {
+      const detail = (stderr || stdout).trim().slice(0, 300);
+      if (/log ?in|not logged|authenticat/i.test(detail)) {
+        throw new UnrecoverableError('Claude Code on the server is not logged in. Run `claude` there once and log in.');
+      }
+      throw new Error(`Claude Code gave no answer (exit ${code}): ${detail || 'no output'}`);
+    }
+    if (parsed.is_error || parsed.subtype !== 'success') {
+      const why = parsed.result ?? `error ${parsed.api_error_status ?? 'unknown'}`;
+      // Usage limits reset within hours: let the queue retry later.
+      if (/limit|rate|overloaded/i.test(why)) throw new Error(`Claude usage limit reached for now: ${why}`);
+      throw new UnrecoverableError(`Claude Code could not draft: ${why}`);
+    }
+    const posts = parsed.structured_output?.posts;
+    if (!Array.isArray(posts)) throw new Error("Claude Code's answer had no posts in it.");
+    return posts;
+  } finally {
+    await rm(cwd, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+// --- Engine: Anthropic API (per-use billing) ---------------------------------
+
+let apiClient: Anthropic | undefined;
+
+async function draftWithApi(prompt: string): Promise<DraftedPost[]> {
+  if (!env.ANTHROPIC_API_KEY) throw new UnrecoverableError(draftingOffReason);
+  apiClient ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  try {
+    const response = await apiClient.beta.messages.parse({
+      model: API_MODEL,
       max_tokens: 16000,
       // If a safety classifier declines, retry on the model Anthropic picks
       // for that case instead of failing the batch.
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
-      output_config: { effort: 'high', format: DRAFTS_FORMAT },
+      output_config: { effort: 'high', format: jsonSchemaOutputFormat(DRAFTS_SCHEMA) },
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -147,13 +245,15 @@ async function askClaude(prompt: string) {
 /** The draft queue's job handler. */
 export async function executeDrafting(job: Job<DraftJobData>): Promise<number> {
   const { identityId, count, hint } = job.data;
+  if (!draftingEnabled) throw new UnrecoverableError(draftingOffReason);
   const identity = await prisma.identity.findUnique({
     where: { id: identityId },
     select: { id: true, label: true, organizationId: true },
   });
   if (!identity) throw new UnrecoverableError('That account no longer exists.');
 
-  const posts = await askClaude(await buildPrompt(identityId, count, hint));
+  const prompt = await buildPrompt(identityId, count, hint);
+  const posts = env.DRAFT_ENGINE === 'api' ? await draftWithApi(prompt) : await draftWithClaudeCode(prompt);
   const usable = posts
     .map((p) => p.text.trim())
     .filter((text) => text.length > 0 && text.length <= MAX_POST_LENGTH)
@@ -179,8 +279,8 @@ export async function executeDrafting(job: Job<DraftJobData>): Promise<number> {
  * to DRAFTS_WAITING Claude drafts. Never more: unanswered drafts stop it.
  */
 export function startAutoDrafter(): () => void {
-  if (!env.ANTHROPIC_API_KEY) {
-    console.log('Auto-drafting is disabled (ANTHROPIC_API_KEY is empty)');
+  if (!draftingEnabled) {
+    console.log(`Auto-drafting is disabled (${draftingOffReason})`);
     return () => undefined;
   }
   let lastRunDay = '';
@@ -218,6 +318,8 @@ export function startAutoDrafter(): () => void {
       console.error('Auto-draft check failed:', error instanceof Error ? error.message : error),
     );
   }, 5 * 60_000);
-  console.log(`Auto-drafting is enabled (daily at ${env.DRAFT_HOUR}:00 ${env.OWNER_TIMEZONE})`);
+  console.log(
+    `Auto-drafting is enabled via ${env.DRAFT_ENGINE} (daily at ${env.DRAFT_HOUR}:00 ${env.OWNER_TIMEZONE})`,
+  );
   return () => clearInterval(timer);
 }

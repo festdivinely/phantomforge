@@ -99,7 +99,8 @@ export default function PostingProfileScreen() {
         {data?.draftingEnabled === false && (
           <View style={[ui.card, { borderColor: colors.warn }]}>
             <Text style={ui.text}>
-              Claude drafting is off on the server: ANTHROPIC_API_KEY is empty in its .env. You can still fill this in now.
+              Claude drafting is off on the server (it is set to use the API but has no API key). You can still fill
+              this in now.
             </Text>
           </View>
         )}
