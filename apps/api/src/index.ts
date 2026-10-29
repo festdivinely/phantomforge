@@ -1,6 +1,7 @@
-import Fastify from 'fastify';
+import Fastify, { type FastifyError } from 'fastify';
 import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
+import { ZodError } from 'zod';
 import { env } from '@pf/config';
 import { requireOwnerToken } from './lib/auth.js';
 import { healthRoutes } from './routes/health.js';
@@ -16,6 +17,24 @@ const app = Fastify({ logger: { level: env.LOG_LEVEL } });
 await app.register(sensible);
 await app.register(cors, { origin: [env.WEB_URL], credentials: true });
 requireOwnerToken(app);
+
+/**
+ * Bad input (a failed Zod parse) is the caller's mistake: 400 with the fields
+ * that were wrong. Real crashes are logged in full but answered with a plain
+ * 500, so internal details never reach a client once the API is on the internet.
+ */
+app.setErrorHandler<FastifyError>((error, req, reply) => {
+  if (error instanceof ZodError) {
+    return reply.code(400).send({
+      error: 'Invalid request',
+      issues: error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+    });
+  }
+  const status = error.statusCode ?? 500;
+  if (status < 500) return reply.code(status).send({ error: error.message });
+  req.log.error(error);
+  return reply.code(500).send({ error: 'Internal server error' });
+});
 
 await app.register(healthRoutes);
 await app.register(agentRoutes, { prefix: '/api' });

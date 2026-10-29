@@ -136,6 +136,24 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — Step 2 checked again: a login hole closed, clearer errors.**
+A fresh check of the API login found a hole: it only looked at whether the
+address *text* started with `/api/`, so an address with one letter written
+in code form (`/%61pi/agents`, which the server reads as `/api/agents`) got
+real data without the token. Now every route is locked except the two health
+checks, judged by the route the server actually matched. Retested: all such
+disguised addresses get 401, the right token still works, the dashboard
+still works, and a fake-LinkedIn run collected 5 profiles with 0 failures.
+
+Wrong input (for example a missing field) used to come back as a "500 server
+error"; it now comes back as "400 invalid request" naming the wrong fields.
+Real server errors are written to the log but answered with a plain message,
+so no internal details leak once the API is on the internet.
+
+Also found: a second copy of the worker, started by another AI tool, was
+running at the same time and fighting this one for Telegram messages (and
+would have shared the job queue). Only one worker may run at a time.
+
 **2026-10-29 — API protection and Telegram owner bot implemented.**
 The API now requires a generated owner token on every `/api/*` request; the
 health check remains public. The local dashboard is configured to send that
@@ -273,16 +291,17 @@ had been run yet — that happened later the same day (see above).
 
 ## 8. What's being worked on right now
 
-Automatically accepting incoming LinkedIn invitations (Phase 3) - built and
-tested on the fake LinkedIn first, then tried carefully on the real account.
-It also finishes two small login-vault leftovers: choosing which saved
-account a Run uses, and showing clearly when a login has expired.
+Done so far: accepting and withdrawing invitations, schedules, post
+approvals and stats (all on the fake LinkedIn), the API login and the
+Telegram bot. Next is the **Cloudflare Tunnel**, so the phone can reach this
+PC's API from anywhere (the API, never the dashboard).
 
 ## 9. What's next after that
 
-In order: withdrawing old invitations → sending connection requests to
-people likely to accept → daily owner-approved posts → a growth dashboard →
-extras like welcome messages and lead lists. The full checklist is in
+In order: the phone app (Expo) → Claude drafting posts for approval → remote
+login (the phone shows the server's browser) → the first careful test on a
+real LinkedIn account at low limits → targeted connection requests → extras
+like welcome messages and lead lists. The full checklist is in
 `docs/ROADMAP.md`.
 
 ---

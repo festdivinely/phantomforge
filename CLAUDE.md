@@ -30,7 +30,12 @@ schedules (`/api/schedules`, cron in the account's timezone + jitter, fired by
 `/api/posts`, approve/reject; the scheduler publishes approved posts via
 `<platform>.create-post`, and `apps/worker/src/posts.ts` settles them).
 **API protection is implemented (2026-10-29):** a generated owner bearer token
-is required for `/api/*`; `/health` stays public. The token is configured in
+is required on every route except `/health` and `/health/ready`
+(`apps/api/src/lib/auth.ts`, deny by default, judged by the matched route -
+a raw-URL prefix check let `/%61pi/...` through). Zod failures return 400
+with the bad fields; other 5xx errors are logged and answered generically.
+**Only one worker may run at a time** - two fight over Telegram polling
+and share the job queue. The token is configured in
 the root `.env` and the local dashboard `.env.local`. Do not expose the
 dashboard through a tunnel because its local token is included in browser code.
 Verified locally: a protected API route returned 401 without the token and

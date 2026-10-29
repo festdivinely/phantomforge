@@ -147,7 +147,9 @@ Good posts bring connections *to* the account - the safest growth of all.
 The owner runs everything from a phone; the backend runs on a server.
 
 - [x] **API authentication verified** - an owner
-      bearer token now protects every `/api/*` route; `/health` stays public.
+      bearer token now protects every route except `/health` and
+      `/health/ready`, judged by the matched route (encoded paths like
+      `/%61pi/...` no longer skip it). Bad input returns 400, not 500.
       Verified: 401 without the token and 200 with it. The local dashboard
       sends the token. Do not expose that dashboard through a tunnel because
       the token is included in its browser code.
