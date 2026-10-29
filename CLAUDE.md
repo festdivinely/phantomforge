@@ -29,7 +29,18 @@ schedules (`/api/schedules`, cron in the account's timezone + jitter, fired by
 `apps/worker/src/scheduler.ts` once a minute); post approvals (`PostDraft`,
 `/api/posts`, approve/reject; the scheduler publishes approved posts via
 `<platform>.create-post`, and `apps/worker/src/posts.ts` settles them).
-**The API has no auth yet - add it before any tunnel exposes it.**
+**API protection is implemented (2026-10-29):** a generated owner bearer token
+is required for `/api/*`; `/health` stays public. The token is configured in
+the root `.env` and the local dashboard `.env.local`. Do not expose the
+dashboard through a tunnel because its local token is included in browser code.
+Verified locally: a protected API route returned 401 without the token and
+200 with it; `/health` returned 200. Cloudflare Tunnel remains unconfigured.
+
+**Telegram owner bot is implemented (2026-10-29):** optional long polling in
+the worker, owner-chat restriction, post approve/edit/skip, daily activity
+summary, and identity/quota alerts. It requires `TELEGRAM_BOT_TOKEN` and
+`TELEGRAM_OWNER_CHAT_ID` in `.env`. Both are configured, and the owner confirmed
+that `/stats` and `/posts` respond in Telegram.
 
 **What the owner wants next** (see the "Owner app" section of the roadmap): a
 phone app (Expo) + Telegram bot for post approvals, per-account stats and live

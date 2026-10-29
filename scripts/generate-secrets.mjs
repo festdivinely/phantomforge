@@ -19,7 +19,8 @@ if (existsSync(envPath)) {
 const key = () => randomBytes(32).toString('base64');
 const contents = readFileSync(resolve(root, '.env.example'), 'utf8')
   .replace(/^PF_ENCRYPTION_KEY=.*$/m, `PF_ENCRYPTION_KEY=${key()}`)
-  .replace(/^BETTER_AUTH_SECRET=.*$/m, `BETTER_AUTH_SECRET=${key()}`);
+  .replace(/^BETTER_AUTH_SECRET=.*$/m, `BETTER_AUTH_SECRET=${key()}`)
+  .replace(/^PF_API_TOKEN=.*$/m, `PF_API_TOKEN=${randomBytes(32).toString('base64url')}`);
 
 writeFileSync(envPath, contents);
 console.log('Created .env with freshly generated secrets.');

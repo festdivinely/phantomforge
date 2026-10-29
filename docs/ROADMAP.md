@@ -146,11 +146,17 @@ Good posts bring connections *to* the account - the safest growth of all.
 
 The owner runs everything from a phone; the backend runs on a server.
 
-- [ ] **API login before anything is exposed** - the API has no auth today
+- [x] **API authentication verified** - an owner
+      bearer token now protects every `/api/*` route; `/health` stays public.
+      Verified: 401 without the token and 200 with it. The local dashboard
+      sends the token. Do not expose that dashboard through a tunnel because
+      the token is included in its browser code.
 - [ ] Cloudflare Tunnel so the phone reaches the server from anywhere
-- [ ] Telegram bot: post approvals with Approve / Edit / Skip buttons, a
-      daily summary per account, urgent alerts (login expired, checkpoint,
-      limit reached)
+- [x] Telegram bot verified by the owner:
+      owner-only post approvals with Approve / Edit / Skip buttons, daily
+      per-account activity summaries, and urgent identity/quota alerts. Needs
+      BotFather token and owner chat ID configured in `.env`; `/stats` and
+      `/posts` both respond.
 - [ ] Phone app (Expo): accounts list -> per-account activity and charts,
       live feed, post approvals
 - [ ] Remote login: the phone shows the server's browser live; the owner

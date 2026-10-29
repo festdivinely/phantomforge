@@ -8,6 +8,14 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 /**
+ * The owner token (apps/web/.env.local). NEXT_PUBLIC_ means it is built into
+ * the page, which is fine for a dashboard that only ever runs on the owner's
+ * own machine - never expose this dashboard through a tunnel. The phone app
+ * is the remote client.
+ */
+const API_TOKEN = process.env.NEXT_PUBLIC_PF_API_TOKEN ?? '';
+
+/**
  * TEMPORARY: there is no login/org-switching UI yet (that's better-auth,
  * not wired up). This is the "dev" organization created by
  * packages/db/prisma/seed.ts, which gives it this fixed id. Replace once real
@@ -20,7 +28,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   // Fastify's default parser rejects an empty body arriving with
   // Content-Type: application/json (FST_ERR_CTP_EMPTY_JSON_BODY), which is
   // exactly what a bodyless POST like .../validate was triggering.
-  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string> | undefined),
+    Authorization: `Bearer ${API_TOKEN}`,
+  };
   if (init?.body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }

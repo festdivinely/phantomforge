@@ -136,6 +136,21 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — API protection and Telegram owner bot implemented.**
+The API now requires a generated owner token on every `/api/*` request; the
+health check remains public. The local dashboard is configured to send that
+token. Keep the dashboard local because its browser code contains the token.
+The API was checked locally: it returned 401 without the token, 200 with it,
+and 200 on the public health check.
+
+The worker can run an optional Telegram bot for the owner. It can show pending
+post drafts with Approve, Edit, and Skip buttons, report today's account
+activity, send a daily summary, and alert when an account needs attention or
+reaches a quota limit. The bot only responds to the configured owner chat.
+Its BotFather token and owner chat ID are configured. The owner confirmed
+that `/stats` and `/posts` reply in Telegram. All workspace TypeScript checks
+passed.
+
 **2026-10-29 — The engine for the phone app: history, stats, schedules, post approvals.**
 Everything the coming phone app needs now exists on the server side, and was
 tested on the fake LinkedIn:
