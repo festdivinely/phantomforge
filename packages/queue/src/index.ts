@@ -65,3 +65,5 @@ export async function enqueueIdentityValidation(identityId: string): Promise<voi
 }
 
 export { Queue, QueueEvents };
+
+export { nextScheduledRun, assertValidSchedule } from './schedule.js';

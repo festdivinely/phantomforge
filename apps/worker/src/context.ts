@@ -1,5 +1,5 @@
 import type { Page } from 'playwright';
-import type { AgentContext } from '@pf/connectors';
+import type { ActivityRecord, AgentContext } from '@pf/connectors';
 import type { Checkpoint, LogLevel, QuotaAction, RunArtifact } from '@pf/core';
 import { leadDedupeKey, leadSchema } from '@pf/core';
 import { prisma } from '@pf/db';
@@ -92,6 +92,21 @@ export function createAgentContext(params: {
 
       await prisma.leadInteraction.create({
         data: { leadId: stored.id, runId, action: 'discovered', succeeded: true },
+      });
+    },
+
+    async recordActivity(activity: ActivityRecord) {
+      await prisma.activity.create({
+        data: {
+          organizationId,
+          identityId,
+          runId,
+          kind: activity.kind,
+          succeeded: activity.ok,
+          targetName: activity.targetName,
+          targetUrl: activity.targetUrl,
+          detail: activity.detail as object | undefined,
+        },
       });
     },
 

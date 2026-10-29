@@ -17,8 +17,12 @@
     "@pf/core": "workspace:*",
     "@pf/db": "workspace:*",
     "@pf/queue": "workspace:*",
+    "@pf/quota": "workspace:^",
     "fastify": "^5.2.0",
     "zod": "^3.24.1"
   },
-  "devDependencies": { "tsx": "^4.19.2", "typescript": "^5.7.3" }
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
 }

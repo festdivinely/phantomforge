@@ -50,6 +50,12 @@ export const sendConnectionAgent = defineAgent({
         ctx.log('warn', `Mock platform rejected request to ${profileId}`);
       }
       results.push({ profileId, ok });
+      await ctx.recordActivity({
+        kind: 'connection_request',
+        ok,
+        targetName: profileId,
+        detail: input.note ? { note: input.note } : undefined,
+      });
 
       await ctx.saveCheckpoint({
         cursor: profileId,

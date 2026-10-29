@@ -3,6 +3,8 @@ import type { Connector, IdentitySession, SessionValidation } from '../base/conn
 import { collectProfilesAgent } from './agents/collect-profiles.js';
 import { sendConnectionAgent } from './agents/send-connection.js';
 import { acceptInvitationsAgent } from './agents/accept-invitations.js';
+import { withdrawPendingAgent } from './agents/withdraw-pending.js';
+import { createPostAgent } from './agents/create-post.js';
 
 /**
  * A fake platform.
@@ -14,7 +16,13 @@ import { acceptInvitationsAgent } from './agents/accept-invitations.js';
 export const mockConnector: Connector = {
   platform: 'mock',
   name: 'Mock Platform',
-  agents: [collectProfilesAgent, sendConnectionAgent, acceptInvitationsAgent],
+  agents: [
+    collectProfilesAgent,
+    sendConnectionAgent,
+    acceptInvitationsAgent,
+    withdrawPendingAgent,
+    createPostAgent,
+  ],
 
   async createBrowserContext(browser: Browser, session: IdentitySession): Promise<BrowserContext> {
     return browser.newContext({

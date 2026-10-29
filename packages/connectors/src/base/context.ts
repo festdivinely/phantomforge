@@ -1,6 +1,15 @@
 import type { Page } from 'playwright';
 import type { Checkpoint, LogLevel, QuotaAction, RunArtifact } from '@pf/core';
 
+/** One action the identity performed on the platform, for the growth record. */
+export interface ActivityRecord {
+  kind: QuotaAction;
+  ok: boolean;
+  targetName?: string;
+  targetUrl?: string;
+  detail?: Record<string, unknown>;
+}
+
 /**
  * Everything an agent is allowed to touch during a run.
  *
@@ -34,6 +43,13 @@ export interface AgentContext {
 
   /** Emit a lead into the lead graph. Deduplicated downstream. */
   emitLead(lead: unknown): Promise<void>;
+
+  /**
+   * Record what the identity just did (accepted, sent, withdrew, posted),
+   * success or failure. Call it once per action, right after the action -
+   * the owner's per-account history and stats are built from these.
+   */
+  recordActivity(activity: ActivityRecord): Promise<void>;
 
   /** Capture a screenshot / DOM snapshot into object storage. */
   captureArtifact(kind: RunArtifact['kind'], note?: string): Promise<RunArtifact>;

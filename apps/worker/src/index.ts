@@ -13,6 +13,8 @@ import { PhantomForgeError, isRetryable } from '@pf/core';
 import { prisma } from '@pf/db';
 import { createAgentContext } from './context.js';
 import { loadIdentitySession } from './identity-session.js';
+import { postUrlFrom, settlePost } from './posts.js';
+import { startScheduler } from './scheduler.js';
 
 /**
  * The worker: the only process in the system that drives a browser.
@@ -83,17 +85,38 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
         output: { results: outcome.results } as object,
       },
     });
+    await settlePost(
+      runId,
+      outcome.processed > 0
+        ? { ok: true, postUrl: postUrlFrom(outcome.results) }
+        : { ok: false, error: 'The platform did not accept the post' },
+    );
   } catch (error) {
     const pfError = error instanceof PhantomForgeError ? error : null;
+    const message = error instanceof Error ? error.message : String(error);
     await prisma.run.update({
       where: { id: runId },
       data: {
         status: pfError?.code === 'QUOTA_EXCEEDED' ? 'quota_blocked' : 'failed',
         finishedAt: new Date(),
         errorCode: pfError?.code ?? 'UNKNOWN',
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: message,
       },
     });
+    await settlePost(runId, { ok: false, error: message });
+
+    // A login wall or checkpoint means the account needs its owner: mark it,
+    // so schedules stop running on it until the owner fixes it.
+    if (identityId && (pfError?.code === 'AUTH_EXPIRED' || pfError?.code === 'CHALLENGE_REQUIRED')) {
+      await prisma.identity.update({
+        where: { id: identityId },
+        data: {
+          status: pfError.code === 'AUTH_EXPIRED' ? 'expired' : 'challenged',
+          statusReason: message,
+          lastValidatedAt: new Date(),
+        },
+      });
+    }
     // Only retry things that are actually worth retrying.
     if (isRetryable(error)) throw error;
   } finally {
@@ -164,8 +187,11 @@ identityWorker.on('failed', (job, err) =>
 
 console.log(`PhantomForge worker listening (concurrency ${env.WORKER_CONCURRENCY})`);
 
+const stopScheduler = startScheduler();
+
 async function shutdown() {
   console.log('Shutting down worker...');
+  stopScheduler();
   await Promise.all([runWorker.close(), identityWorker.close()]);
   await browser?.close().catch(() => undefined);
   process.exit(0);

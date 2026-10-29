@@ -74,8 +74,16 @@ Lowest risk, instant growth: accept every incoming invitation on a schedule.
       "running"; the seeded mock identity held undecryptable bytes; the dev
       org id is now fixed (`dev-org`) instead of random
 - [ ] `selector_health` telemetry recorded on every resolve
-- [ ] Screenshot artifact captured on unexpected DOM state
-- [ ] Simple recurring schedule (e.g. every 4 hours, Africa/Lagos time)
+- [ ] Screenshot artifact captured on unexpected DOM state (the record is
+      written; uploading the actual image to storage is still a TODO)
+- [x] Recurring schedules (2026-10-29): cron in the account's timezone
+      (default `0 9,13,17 * * 1-5` Africa/Lagos - working hours, weekends
+      off) plus a random 0..jitterMinutes delay so runs never start on the
+      same minute; never stacks a run on one still going; skips accounts that
+      aren't `active`. API: `/api/schedules`. Verified with the mock.
+- [x] Every action is recorded as an `Activity`; a login wall or checkpoint
+      mid-run marks the account `expired` / `challenged`, which pauses its
+      schedules
 
 ---
 
@@ -110,19 +118,45 @@ Send to the people most likely to accept, staying under LinkedIn's limits.
 
 Good posts bring connections *to* the account - the safest growth of all.
 
-- [ ] Post drafts written by Claude from notes about the owner's topics;
-      **the owner approves every post** before it is published
-- [ ] Publish on a schedule (decide official LinkedIn API vs browser agent in a
-      decision record first; the official API is lower risk for posts)
+- [x] Approval flow (2026-10-29): `PostDraft` with pending_approval ->
+      approved / rejected -> publishing -> published / failed. API:
+      `/api/posts`, `/api/posts/:id/approve` (text can be edited while
+      approving), `/reject`. The scheduler publishes approved posts when due.
+      Verified end to end with `mock.create-post`.
+- [ ] Post drafts written by Claude from notes about the owner's topics
+- [ ] `linkedin.create-post` (decide official LinkedIn API vs browser agent in
+      a decision record first)
 - [ ] Remember which posts got the most reactions, to guide future drafts
 
 ---
 
 ## Phase 7 — Growth dashboard
 
-- [ ] Daily snapshot per identity: connections, followers, pending invitations,
-      invitations sent, acceptance rate
-- [ ] Charts over time; what is left of today's and this week's quota
+- [x] Stats API (2026-10-29): `/api/accounts/overview` (every account with
+      today's numbers), `/api/accounts/:id/stats` (today / 7 / 30 days / all
+      time per action, day-by-day series, quota left today, schedules,
+      posts waiting), `/api/activity` (live feed, pageable, pollable)
+- [ ] Daily snapshot per identity of totals only LinkedIn knows: connections,
+      followers, pending invitations (needs a read agent)
+- [ ] Acceptance rate (needs request -> accepted matching)
+
+---
+
+## Owner app (phone) + Telegram + remote login
+
+The owner runs everything from a phone; the backend runs on a server.
+
+- [ ] **API login before anything is exposed** - the API has no auth today
+- [ ] Cloudflare Tunnel so the phone reaches the server from anywhere
+- [ ] Telegram bot: post approvals with Approve / Edit / Skip buttons, a
+      daily summary per account, urgent alerts (login expired, checkpoint,
+      limit reached)
+- [ ] Phone app (Expo): accounts list -> per-account activity and charts,
+      live feed, post approvals
+- [ ] Remote login: the phone shows the server's browser live; the owner
+      types email / password / codes and solves any CAPTCHA by hand, so the
+      session is created from the server's own location. Passwords are never
+      stored.
 
 ---
 

@@ -20,8 +20,22 @@ CAPTCHA solving, proxies, fake accounts).
 `mock.accept-invitations` verified end to end; `linkedin.accept-invitations`
 written and verified only to stop at the login wall (AUTH_EXPIRED) - never run
 on a real logged-in account yet. Runs choose an identity in the dashboard.
-Still open in Phase 3: selector-health telemetry, the recurring schedule, and
-the first real-account test (owner creates the account and pastes `li_at`).
+Still open in Phase 3: selector-health telemetry and the first real-account test.
+
+**Growth engine (2026-10-29), all verified with the mock:** `Activity` rows
+via `ctx.recordActivity()` (every agent must call it once per action);
+`/api/accounts/overview`, `/api/accounts/:id/stats`, `/api/activity`;
+schedules (`/api/schedules`, cron in the account's timezone + jitter, fired by
+`apps/worker/src/scheduler.ts` once a minute); post approvals (`PostDraft`,
+`/api/posts`, approve/reject; the scheduler publishes approved posts via
+`<platform>.create-post`, and `apps/worker/src/posts.ts` settles them).
+**The API has no auth yet - add it before any tunnel exposes it.**
+
+**What the owner wants next** (see the "Owner app" section of the roadmap): a
+phone app (Expo) + Telegram bot for post approvals, per-account stats and live
+updates; Cloudflare Tunnel from this PC for now (runs only while the PC is
+on), a paid server later; remote login where the phone shows the server's
+browser and the owner types credentials / codes / CAPTCHAs himself.
 
 **Where it lives:** `C:\Users\HP\phantomforge` on the main PC (copied from the
 external disk on 2026-10-28), backed up to the private GitHub repo

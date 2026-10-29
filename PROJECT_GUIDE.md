@@ -136,6 +136,28 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — The engine for the phone app: history, stats, schedules, post approvals.**
+Everything the coming phone app needs now exists on the server side, and was
+tested on the fake LinkedIn:
+- **History.** Every action an account takes - accepting, sending or
+  withdrawing an invitation, publishing a post - is saved with who it was
+  for and whether it worked.
+- **Stats.** For each account: today, the last 7 and 30 days, and all time,
+  for each kind of action; a day-by-day list for charts; how much of today's
+  safety budget is left; its schedules; and posts waiting for approval. Plus
+  an overview of all accounts and a live activity feed.
+- **Schedules.** "Run this on that account at these times", in the
+  account's local time. The default is working hours (9am, 1pm, 5pm,
+  Monday-Friday) and every run starts a random few minutes late, so it never
+  looks like clockwork. If an account's login expires or LinkedIn asks for
+  verification, its schedules pause on their own.
+- **Post approvals.** Posts wait for the owner's yes. The owner can edit the
+  text while approving, or reject it. Approved posts publish by themselves
+  at their time. Tested: a post was approved with edited text and published
+  automatically a minute later.
+Not built yet: the phone app itself, Telegram, the login for the server's
+API (needed before it goes on the internet), and posting on real LinkedIn.
+
 **2026-10-29 — First growth agent: accept invitations.**
 PhantomForge can now accept incoming LinkedIn invitations automatically.
 - On the fake LinkedIn it works start to finish: with 8 invitations waiting

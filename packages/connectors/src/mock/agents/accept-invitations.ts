@@ -73,6 +73,12 @@ export const acceptInvitationsAgent = defineAgent({
         ctx.log('warn', `Mock platform failed to accept ${inviter.fullName}`);
       }
       results.push({ inviter: inviter.fullName, ok });
+      await ctx.recordActivity({
+        kind: 'connection_accept',
+        ok,
+        targetName: inviter.fullName,
+        targetUrl: inviter.profileUrl,
+      });
 
       await ctx.saveCheckpoint({ cursor: inviter.platformId, processed: index + 1, total });
     }

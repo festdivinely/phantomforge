@@ -102,6 +102,8 @@ export const acceptInvitationsAgent = defineAgent({
         .catch(() => false);
       assertStillLoggedIn(page);
 
+      await ctx.recordActivity({ kind: 'connection_accept', ok: landed, targetName: name });
+
       if (!landed) {
         failed += 1;
         results.push({ inviter: name, ok: false });

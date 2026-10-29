@@ -97,6 +97,8 @@ model Organization {
   quotaUsages QuotaUsage[]
   webhooks    Webhook[]
   auditLogs   AuditLog[]
+  activities  Activity[]
+  posts       PostDraft[]
 
   @@map("organization")
 }
@@ -174,9 +176,77 @@ model Identity {
   runs        Run[]
   quotaUsages QuotaUsage[]
   schedules   Schedule[]
+  activities  Activity[]
+  posts       PostDraft[]
 
   @@index([organizationId, platform])
   @@map("identity")
+}
+
+// ------------------------------------------------------------ growth
+
+/// One thing an identity actually did on the platform: accepted an
+/// invitation, sent one, withdrew one, published a post. This is what the
+/// growth dashboard and the phone app's per-account view are built from.
+model Activity {
+  id         String   @id @default(cuid())
+  /// Same vocabulary as quota actions: connection_accept, connection_request,
+  /// connection_withdraw, post_create, message_send, ...
+  kind       String
+  succeeded  Boolean  @default(true)
+  targetName String?
+  targetUrl  String?
+  detail     Json?
+  occurredAt DateTime @default(now())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  identityId     String
+  identity       Identity     @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  runId          String?
+  run            Run?         @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([identityId, occurredAt])
+  @@index([organizationId, occurredAt])
+  @@map("activity")
+}
+
+enum PostStatus {
+  pending_approval
+  approved
+  rejected
+  publishing
+  published
+  failed
+}
+
+/// A post waiting for, or past, the owner's decision. Nothing is published
+/// unless a human moved it to `approved`.
+model PostDraft {
+  id           String     @id @default(cuid())
+  text         String
+  status       PostStatus @default(pending_approval)
+  /// Who wrote the draft: "claude", "owner", ...
+  source       String     @default("owner")
+  /// Earliest time to publish once approved; null = as soon as approved.
+  scheduledFor DateTime?
+  decidedAt    DateTime?
+  publishedAt  DateTime?
+  postUrl      String?
+  error        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  identityId     String
+  identity       Identity     @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  runId          String?      @unique
+  run            Run?         @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledFor])
+  @@index([identityId, createdAt])
+  @@map("post_draft")
 }
 
 // ------------------------------------------------------- agents & runs
@@ -251,9 +321,11 @@ model Run {
   agentConfigId  String?
   agentConfig    AgentConfig? @relation(fields: [agentConfigId], references: [id], onDelete: SetNull)
 
-  logs      RunLog[]
-  artifacts RunArtifact[]
-  leadHits  LeadInteraction[]
+  logs       RunLog[]
+  artifacts  RunArtifact[]
+  leadHits   LeadInteraction[]
+  activities Activity[]
+  post       PostDraft?
 
   @@index([organizationId, status, queuedAt])
   @@index([identityId, queuedAt])
@@ -363,11 +435,15 @@ model QuotaUsage {
   @@map("quota_usage")
 }
 
+/// Runs an agent config on a cron, in the identity's local time. Each next
+/// run is pushed back by a random 0..jitterMinutes so runs never start on the
+/// exact same minute - fixed clockwork is not how people use LinkedIn.
 model Schedule {
-  id         String    @id @default(cuid())
-  cron       String
-  timezone   String    @default("UTC")
-  enabled    Boolean   @default(true)
+  id            String    @id @default(cuid())
+  cron          String
+  timezone      String    @default("UTC")
+  jitterMinutes Int       @default(20)
+  enabled       Boolean   @default(true)
   lastRunAt  DateTime?
   nextRunAt  DateTime?
   createdAt  DateTime  @default(now())
