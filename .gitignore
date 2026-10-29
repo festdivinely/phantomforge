@@ -23,7 +23,7 @@ packages/db/prisma/migrations/dev.db*
 
 # runtime artifacts (screenshots, DOM snapshots, exports)
 .artifacts/
-storage/
+/storage/
 
 # playwright
 playwright-report/
