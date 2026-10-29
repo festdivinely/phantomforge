@@ -136,6 +136,20 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — The API can be reached from the internet (Cloudflare quick tunnel).**
+`pnpm tunnel` opens a Cloudflare "quick tunnel": a free, temporary web
+address like `https://<random words>.trycloudflare.com` that leads to the API
+on this PC, so the phone app can reach it from anywhere. Only the API goes
+through it, never the dashboard. No Cloudflare account is needed, but the
+address changes every time the tunnel restarts; the current one is printed
+and saved in `.tunnel-url`. It only works while this PC and the API are on.
+Tested from the internet: the health check answers, and every `/api` request
+without the owner token gets 401.
+
+Setup on a new PC: put `cloudflared.exe` (from Cloudflare's official GitHub
+releases, `cloudflared-windows-amd64.exe`) in a folder on PATH; on this PC
+it is `C:\Users\HP\.local\bin\cloudflared.exe`.
+
 **2026-10-29 — Step 2 checked again: a login hole closed, clearer errors.**
 A fresh check of the API login found a hole: it only looked at whether the
 address *text* started with `/api/`, so an address with one letter written
@@ -293,12 +307,12 @@ had been run yet — that happened later the same day (see above).
 
 Done so far: accepting and withdrawing invitations, schedules, post
 approvals and stats (all on the fake LinkedIn), the API login and the
-Telegram bot. Next is the **Cloudflare Tunnel**, so the phone can reach this
-PC's API from anywhere (the API, never the dashboard).
+Telegram bot, and a quick Cloudflare tunnel to the API. Next is the
+**phone app (Expo)**.
 
 ## 9. What's next after that
 
-In order: the phone app (Expo) → Claude drafting posts for approval → remote
+In order: Claude drafting posts for approval → remote
 login (the phone shows the server's browser) → the first careful test on a
 real LinkedIn account at low limits → targeted connection requests → extras
 like welcome messages and lead lists. The full checklist is in

@@ -45,3 +45,6 @@ Thumbs.db
 *.pem
 *.key
 secrets/
+
+# Current quick-tunnel address (changes every start)
+.tunnel-url

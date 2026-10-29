@@ -39,7 +39,9 @@ and share the job queue. The token is configured in
 the root `.env` and the local dashboard `.env.local`. Do not expose the
 dashboard through a tunnel because its local token is included in browser code.
 Verified locally: a protected API route returned 401 without the token and
-200 with it; `/health` returned 200. Cloudflare Tunnel remains unconfigured.
+200 with it; `/health` returned 200. A Cloudflare quick tunnel (`pnpm tunnel`, `scripts/tunnel.mjs`) exposes the
+API only; verified from the internet on 2026-10-29. Its address changes each
+start. A permanent address (account + domain) is still to do.
 
 **Telegram owner bot is implemented (2026-10-29):** optional long polling in
 the worker, owner-chat restriction, post approve/edit/skip, daily activity
@@ -194,5 +196,6 @@ pnpm db:generate        # prisma client
 pnpm db:migrate         # create/apply migrations
 pnpm db:seed            # dev org, user, mock identity, sample agent config
 pnpm dev                # web + api + worker via turbo
+pnpm tunnel             # Cloudflare quick tunnel to the API only; URL -> .tunnel-url
 pnpm typecheck          # verification pass before any commit
 ```

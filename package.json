@@ -24,6 +24,7 @@
     "db:studio": "pnpm --filter @pf/db run studio",
     "db:seed": "pnpm --filter @pf/db run seed",
     "browsers": "pnpm --filter @pf/worker exec playwright install chromium",
+    "tunnel": "node scripts/tunnel.mjs",
     "bootstrap": "pnpm install && pnpm browsers && pnpm infra:up && pnpm db:generate && pnpm db:migrate && pnpm db:seed"
   },
   "devDependencies": {

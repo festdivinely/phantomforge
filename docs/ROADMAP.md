@@ -153,7 +153,12 @@ The owner runs everything from a phone; the backend runs on a server.
       Verified: 401 without the token and 200 with it. The local dashboard
       sends the token. Do not expose that dashboard through a tunnel because
       the token is included in its browser code.
-- [ ] Cloudflare Tunnel so the phone reaches the server from anywhere
+- [x] Cloudflare quick tunnel to the API only (`pnpm tunnel`, verified
+      2026-10-29 from the internet: /health 200, /api 401 without the token,
+      200 with it). The address changes on every start (saved to
+      `.tunnel-url`); it works only while this PC is on.
+- [ ] Permanent tunnel address (Cloudflare account + a domain) once the
+      phone app is in daily use
 - [x] Telegram bot verified by the owner:
       owner-only post approvals with Approve / Edit / Skip buttons, daily
       per-account activity summaries, and urgent identity/quota alerts. Needs
