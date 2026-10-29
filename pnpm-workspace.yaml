@@ -1,3 +1,6 @@
 packages:
   - "apps/*"
   - "packages/*"
+  # The Expo app installs with npm on its own: its React version differs from
+  # the web dashboard's, and Metro is simpler outside the pnpm workspace.
+  - "!apps/mobile"

@@ -3,7 +3,7 @@
  * Opens a Cloudflare quick tunnel to the API (never the dashboard: its browser
  * code holds the owner token). No Cloudflare account is needed, but the
  * https://<random>.trycloudflare.com address changes on every start, so it is
- * printed here and saved to .tunnel-url for the phone app to pick up.
+ * printed here, saved to .tunnel-url and sent to the owner on Telegram.
  *
  * Needs `cloudflared` on PATH. Stop with Ctrl+C.
  */
@@ -17,7 +17,30 @@ const envPath = resolve(root, '.env');
 const urlPath = resolve(root, '.tunnel-url');
 
 const envText = existsSync(envPath) ? readFileSync(envPath, 'utf8') : '';
-const port = envText.match(/^API_PORT=(\d+)/m)?.[1] ?? '3001';
+const envValue = (name) => envText.match(new RegExp(`^${name}=(.*)$`, 'm'))?.[1]?.trim() || undefined;
+const port = envValue('API_PORT') ?? '3001';
+
+/** Sends the new address to the owner's Telegram chat, so the phone app can be updated. */
+async function tellOwner(url) {
+  const bot = envValue('TELEGRAM_BOT_TOKEN');
+  const chat = envValue('TELEGRAM_OWNER_CHAT_ID');
+  if (!bot || !chat) return;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chat,
+        text: `PhantomForge server address changed.\nCopy it into the phone app (Settings -> Change address):\n\n${url}`,
+        disable_web_page_preview: true,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    console.log(res.ok ? 'Sent the address to Telegram.' : `Telegram refused the message (${res.status}).`);
+  } catch {
+    console.log('Could not reach Telegram to send the address.');
+  }
+}
 
 const tunnel = spawn(
   'cloudflared',
@@ -45,6 +68,7 @@ const watch = (chunk) => {
     console.log(`\nAPI is reachable at: ${url}`);
     console.log(`Health check:        ${url}/health`);
     console.log('Every /api request still needs the owner token. Ctrl+C to stop.\n');
+    void tellOwner(url);
   }
   if (/ERR|error/i.test(text) && !announced) process.stderr.write(text);
 };
