@@ -38,8 +38,15 @@ export default function ConnectScreen() {
     <KeyboardAvoidingView style={ui.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
         <Text style={ui.text}>
-          Connect this phone to PhantomForge on your PC. On the PC, run <Text style={{ fontWeight: '700' }}>pnpm tunnel</Text>:
-          the new address appears there and is also sent to you on Telegram.
+          Easiest: on the PC, open the dashboard, click <Text style={{ fontWeight: '700' }}>Pair the phone app</Text>, and
+          scan the code.
+        </Text>
+        <Button title="Scan pairing QR" onPress={() => router.push('/scan')} />
+
+        <Text style={[ui.sectionTitle, { marginTop: 20 }]}>Or enter it by hand</Text>
+        <Text style={ui.muted}>
+          The address comes from <Text style={{ fontWeight: '700' }}>pnpm tunnel</Text> on the PC (also sent to you on
+          Telegram).
         </Text>
 
         <Text style={ui.sectionTitle}>Server address</Text>
@@ -74,7 +81,12 @@ export default function ConnectScreen() {
         <Text style={ui.muted}>The token is stored in the phone's secure storage and only sent to your server.</Text>
 
         {error ? <Text style={{ color: colors.bad, fontSize: 14 }}>{error}</Text> : null}
-        <Button title={session ? 'Save and reconnect' : 'Connect'} onPress={() => void submit()} busy={busy} />
+        <Button
+          kind="secondary"
+          title={session ? 'Save and reconnect' : 'Connect'}
+          onPress={() => void submit()}
+          busy={busy}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

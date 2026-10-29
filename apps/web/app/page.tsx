@@ -18,6 +18,12 @@ export default async function HomePage() {
       >
         Manage identities &rarr;
       </Link>
+      <Link
+        href="/pair"
+        className="ml-6 mt-3 inline-block text-sm text-neutral-400 underline hover:text-neutral-200"
+      >
+        Pair the phone app &rarr;
+      </Link>
 
       <section className="mt-10">
         <h2 className="text-sm font-medium uppercase tracking-wider text-neutral-500">

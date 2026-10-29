@@ -20,6 +20,7 @@ function RootStack() {
         <Stack.Screen name="account/[id]" options={{ title: 'Account' }} />
       </Stack.Protected>
       <Stack.Screen name="connect" options={{ title: 'Connect to PhantomForge' }} />
+      <Stack.Screen name="scan" options={{ title: 'Scan pairing QR' }} />
     </Stack>
   );
 }

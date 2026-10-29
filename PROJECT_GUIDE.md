@@ -136,6 +136,30 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — The phone app, and pairing it with a QR code.**
+`apps/mobile` is the PhantomForge phone app, built with Expo (the same
+toolkit as Stallion Trader). It shows each account with today's numbers; an
+account's totals for today / 7 days / 30 days / all time, a 14-day bar chart,
+today's safety limits and a switch to pause each schedule; posts waiting for
+approval (approve, edit, skip, or write a new one); and a live activity feed.
+
+To connect it, open the dashboard on the PC and click **Pair the phone app**:
+it shows a QR code holding the server address and the owner token, and the
+app reads it with the camera. The token goes from the PC screen to the phone
+and nowhere else. The dashboard now only answers on this PC itself
+(`127.0.0.1`), so nobody else on the Wi-Fi can open that page.
+
+The phone app installs with npm on its own, outside the pnpm workspace,
+because it uses a different React version than the dashboard. Run it with
+`npx expo start --offline` in `apps/mobile` and open it in Expo Go.
+
+Also fixed: when an old tunnel shut down it deleted the saved address even
+if a newer tunnel had already written its own; now each tunnel only removes
+its own. `/api/me` tells the app which workspace it belongs to.
+
+Not yet done: testing the app on the owner's real phone. The PC's virtual
+phone could not run (7.4 GB of RAM was not enough with everything else open).
+
 **2026-10-29 — The API can be reached from the internet (Cloudflare quick tunnel).**
 `pnpm tunnel` opens a Cloudflare "quick tunnel": a free, temporary web
 address like `https://<random words>.trycloudflare.com` that leads to the API
@@ -307,8 +331,9 @@ had been run yet — that happened later the same day (see above).
 
 Done so far: accepting and withdrawing invitations, schedules, post
 approvals and stats (all on the fake LinkedIn), the API login and the
-Telegram bot, and a quick Cloudflare tunnel to the API. Next is the
-**phone app (Expo)**.
+Telegram bot, a quick Cloudflare tunnel to the API, and the phone app with
+QR pairing. Next: **test the phone app on the owner's phone** and fix what
+turns up.
 
 ## 9. What's next after that
 

@@ -58,12 +58,14 @@ tunnel.on('error', (error) => {
 });
 
 let announced = false;
+let ourUrl;
 const watch = (chunk) => {
   const text = chunk.toString();
   if (process.env.TUNNEL_VERBOSE) process.stderr.write(text);
   const url = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/)?.[0];
   if (url && !announced) {
     announced = true;
+    ourUrl = url;
     writeFileSync(urlPath, `${url}\n`);
     console.log(`\nAPI is reachable at: ${url}`);
     console.log(`Health check:        ${url}/health`);
@@ -79,6 +81,8 @@ const stop = () => tunnel.kill();
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 tunnel.on('exit', (code) => {
-  rmSync(urlPath, { force: true });
+  // Only remove our own address: a newer tunnel may already have written its own.
+  const current = existsSync(urlPath) ? readFileSync(urlPath, 'utf8').trim() : undefined;
+  if (current && current === ourUrl) rmSync(urlPath, { force: true });
   process.exit(code ?? 0);
 });

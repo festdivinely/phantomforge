@@ -43,6 +43,15 @@ Verified locally: a protected API route returned 401 without the token and
 API only; verified from the internet on 2026-10-29. Its address changes each
 start. A permanent address (account + domain) is still to do.
 
+**Phone app (2026-10-29), built but not yet run on a device:** `apps/mobile`,
+Expo SDK 58 + expo-router (`src/app`), installed with npm and excluded from
+the pnpm workspace (`!apps/mobile`) because its React differs from the web's;
+`react-dom` is pinned to 19.3.0 to match. It pairs by scanning the dashboard's
+`/pair` QR (`{"app":"phantomforge","v":1,"url","token"}`), stores the
+connection in expo-secure-store, and finds its org via `GET /api/me`. The
+dashboard binds to 127.0.0.1 only, because its pages carry the owner token.
+Never send the owner token over Telegram or any third party.
+
 **Telegram owner bot is implemented (2026-10-29):** optional long polling in
 the worker, owner-chat restriction, post approve/edit/skip, daily activity
 summary, and identity/quota alerts. It requires `TELEGRAM_BOT_TOKEN` and
@@ -196,6 +205,7 @@ pnpm db:generate        # prisma client
 pnpm db:migrate         # create/apply migrations
 pnpm db:seed            # dev org, user, mock identity, sample agent config
 pnpm dev                # web + api + worker via turbo
-pnpm tunnel             # Cloudflare quick tunnel to the API only; URL -> .tunnel-url
+pnpm tunnel             # Cloudflare quick tunnel to the API only; URL -> .tunnel-url + Telegram
+cd apps/mobile && npx expo start --offline   # phone app (npm, NOT in the pnpm workspace)
 pnpm typecheck          # verification pass before any commit
 ```
