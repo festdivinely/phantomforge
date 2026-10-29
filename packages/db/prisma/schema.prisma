@@ -178,6 +178,7 @@ model Identity {
   schedules   Schedule[]
   activities  Activity[]
   posts       PostDraft[]
+  postingProfile PostingProfile?
 
   @@index([organizationId, platform])
   @@map("identity")
@@ -503,4 +504,31 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@map("audit_log")
+}
+
+/// What Claude needs to draft posts in the owner's voice for one account.
+/// Every field is plain text the owner writes in the phone app.
+model PostingProfile {
+  id         String   @id @default(cuid())
+  /// Who the account owner is: role, experience, what they do.
+  about      String   @default("")
+  /// Who the posts are for.
+  audience   String   @default("")
+  /// What to post about, one topic per line.
+  topics     String   @default("")
+  /// How the posts should sound.
+  tone       String   @default("")
+  /// What never to post or say.
+  avoid      String   @default("")
+  /// A few past posts in the owner's own words, so drafts match the voice.
+  examples   String   @default("")
+  /// When true, the worker keeps a few Claude drafts waiting every day.
+  autoDraft  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  identityId String   @unique
+  identity   Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+
+  @@map("posting_profile")
 }

@@ -86,3 +86,21 @@ export interface PostDraft {
   identityId: string;
   identity?: { label: string };
 }
+
+export interface PostingProfile {
+  about: string;
+  audience: string;
+  topics: string;
+  tone: string;
+  avoid: string;
+  examples: string;
+  autoDraft: boolean;
+  /** False when the server has no Claude API key. */
+  draftingEnabled?: boolean;
+}
+
+export interface DraftJob {
+  state: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed' | 'prioritized' | 'waiting-children' | 'unknown';
+  made?: number;
+  error?: string;
+}

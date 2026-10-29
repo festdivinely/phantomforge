@@ -123,7 +123,16 @@ Good posts bring connections *to* the account - the safest growth of all.
       `/api/posts`, `/api/posts/:id/approve` (text can be edited while
       approving), `/reject`. The scheduler publishes approved posts when due.
       Verified end to end with `mock.create-post`.
-- [ ] Post drafts written by Claude from notes about the owner's topics
+- [ ] Post drafts written by Claude (`claude-opus-5-5`) - **built 2026-10-29,
+      waiting for the owner's Anthropic API key to test with real calls**:
+      per-account `PostingProfile` (about, audience, topics, tone, avoid,
+      example posts, auto-draft), `pf-post-drafts` queue run by the worker
+      (`apps/worker/src/drafter.ts`, structured JSON output, refusal
+      fallback on), drafts saved as `pending_approval` with source `claude`,
+      Telegram "new drafts" message and `/draft [idea]`, phone app "Draft
+      with Claude" + posting profile screen, daily auto top-up at
+      DRAFT_HOUR. Verified without a key: routes, validation, and a clean
+      one-attempt failure with a readable reason.
 - [ ] `linkedin.create-post` (decide official LinkedIn API vs browser agent in
       a decision record first)
 - [ ] Remember which posts got the most reactions, to guide future drafts
@@ -171,6 +180,8 @@ The owner runs everything from a phone; the backend runs on a server.
       approvals and new drafts. Server log: every request 200, no errors.
       Needs the Windows Firewall rule "PhantomForge dev (Expo 8081, API
       3001)" (Private profile) - Node was only allowed on Public networks.
+- [ ] Polish the phone app with the owner (look, feel, details) - **the owner
+      asked to be reminded of this before any APK build**
 - [ ] Standalone APK (EAS build) so the app runs without Expo Go and the PC
 - [ ] Remote login: the phone shows the server's browser live; the owner
       types email / password / codes and solves any CAPTCHA by hand, so the

@@ -64,6 +64,34 @@ export async function enqueueIdentityValidation(identityId: string): Promise<voi
   );
 }
 
+export const DRAFT_QUEUE_NAME = 'pf-post-drafts';
+
+/** "Have Claude write `count` post drafts for this account." */
+export interface DraftJobData {
+  identityId: string;
+  count: number;
+  /** Optional steer from the owner for this batch, e.g. "about my new job". */
+  hint?: string;
+  requestedBy: 'owner' | 'auto';
+}
+
+export const draftQueue = new Queue<DraftJobData>(DRAFT_QUEUE_NAME, {
+  connection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: 'exponential', delay: 60_000 },
+    removeOnComplete: { age: 86_400, count: 200 },
+    removeOnFail: { age: 604_800 },
+  },
+});
+
+export async function enqueueDrafting(data: DraftJobData): Promise<string> {
+  const job = await draftQueue.add('draft-posts', data, {
+    jobId: `draft-${data.identityId}-${Date.now()}`,
+  });
+  return job.id ?? '';
+}
+
 export { Queue, QueueEvents };
 
 export { nextScheduledRun, assertValidSchedule } from './schedule.js';

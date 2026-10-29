@@ -12,6 +12,7 @@ import { growthRoutes } from './routes/growth.js';
 import { scheduleRoutes } from './routes/schedules.js';
 import { postRoutes } from './routes/posts.js';
 import { meRoutes } from './routes/me.js';
+import { draftingRoutes } from './routes/drafting.js';
 
 const app = Fastify({ logger: { level: env.LOG_LEVEL } });
 
@@ -45,6 +46,7 @@ await app.register(growthRoutes, { prefix: '/api' });
 await app.register(scheduleRoutes, { prefix: '/api' });
 await app.register(postRoutes, { prefix: '/api' });
 await app.register(meRoutes, { prefix: '/api' });
+await app.register(draftingRoutes, { prefix: '/api' });
 
 try {
   await app.listen({ port: env.API_PORT, host: '0.0.0.0' });

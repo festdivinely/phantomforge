@@ -1,10 +1,12 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { Button, Empty, ErrorBanner, Loading, StatusPill } from '../../components/ui';
 import { useSession } from '../../lib/connection';
 import { dateTime, timeAgo } from '../../lib/format';
 import { colors, ui } from '../../lib/theme';
-import type { AccountOverview, PostDraft } from '../../lib/types';
+import { ApiError } from '../../lib/api';
+import type { AccountOverview, DraftJob, PostDraft } from '../../lib/types';
 import { useLoader } from '../../lib/useLoader';
 
 const MAX_LENGTH = 3000;
@@ -34,6 +36,7 @@ export default function PostsScreen() {
         <ErrorBanner error={error} onRetry={() => void reload()} />
         {data && (
           <>
+            <DraftWithClaude accounts={data.accounts} onDrafted={reload} />
             <Compose accounts={data.accounts} onCreated={reload} />
 
             <Text style={ui.sectionTitle}>Waiting for you ({data.pending.length})</Text>
@@ -138,6 +141,109 @@ function PendingPost({ post, onDone }: { post: PostDraft; onDone: () => Promise<
         <Button small kind="danger" title="Skip" onPress={confirmSkip} busy={busy === 'reject'} disabled={!!busy} />
       </View>
     </View>
+  );
+}
+
+const COUNTS = [1, 3, 5] as const;
+const POLL_MS = 3_000;
+
+/** Asks Claude for drafts, then follows the job until the drafts arrive. */
+function DraftWithClaude({ accounts, onDrafted }: { accounts: AccountOverview[]; onDrafted: () => Promise<void> }) {
+  const { call } = useSession();
+  const [accountId, setAccountId] = useState<string>();
+  const [count, setCount] = useState<(typeof COUNTS)[number]>(3);
+  const [hint, setHint] = useState('');
+  const [status, setStatus] = useState<{ busy: boolean; text?: string; needsProfile?: boolean; ok?: boolean }>({
+    busy: false,
+  });
+  const chosen = accountId ?? accounts[0]?.id;
+
+  const follow = async (jobId: string) => {
+    // Claude takes a little while to write; check every few seconds, give up after ~4 minutes.
+    for (let i = 0; i < 80; i++) {
+      await new Promise((r) => setTimeout(r, POLL_MS));
+      const job = await call<DraftJob>(`/api/posts/draft/${jobId}`);
+      if (job.state === 'completed') {
+        await onDrafted();
+        return setStatus({ busy: false, ok: true, text: `${job.made ?? 0} new draft${job.made === 1 ? '' : 's'} below.` });
+      }
+      if (job.state === 'failed') return setStatus({ busy: false, text: job.error ?? 'Drafting failed.' });
+      setStatus({ busy: true, text: job.state === 'delayed' ? 'Busy at Claude, retrying shortly...' : 'Claude is writing...' });
+    }
+    setStatus({ busy: false, text: 'Still writing. The drafts will appear here (and in Telegram) when ready.' });
+  };
+
+  const start = async () => {
+    if (!chosen) return;
+    setStatus({ busy: true, text: 'Sending...' });
+    try {
+      const { jobId } = await call<{ jobId: string }>('/api/posts/draft', {
+        method: 'POST',
+        body: { identityId: chosen, count, hint: hint.trim() || undefined },
+      });
+      setHint('');
+      await follow(jobId);
+    } catch (err) {
+      const needsProfile = err instanceof ApiError && err.status === 409;
+      setStatus({ busy: false, needsProfile, text: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  if (accounts.length === 0) return null;
+
+  return (
+    <View style={ui.card}>
+      <Text style={ui.title}>Draft with Claude</Text>
+      <Text style={ui.muted}>Claude writes posts from the account's posting profile. Each one waits for you below.</Text>
+      {accounts.length > 1 && (
+        <View style={[ui.row, { flexWrap: 'wrap' }]}>
+          {accounts.map((a) => (
+            <Chip key={a.id} label={a.label} on={a.id === chosen} onPress={() => setAccountId(a.id)} />
+          ))}
+        </View>
+      )}
+      <View style={ui.row}>
+        <Text style={ui.muted}>How many:</Text>
+        {COUNTS.map((n) => (
+          <Chip key={n} label={String(n)} on={n === count} onPress={() => setCount(n)} />
+        ))}
+      </View>
+      <TextInput
+        style={ui.input}
+        value={hint}
+        onChangeText={setHint}
+        placeholder="Optional idea, e.g. what I learned shipping my app"
+        placeholderTextColor={colors.muted}
+        maxLength={500}
+      />
+      {status.text ? (
+        <Text style={{ color: status.ok ? colors.good : status.busy ? colors.muted : colors.bad }}>{status.text}</Text>
+      ) : null}
+      <View style={[ui.row, { flexWrap: 'wrap' }]}>
+        <Button small title={`Write ${count} draft${count > 1 ? 's' : ''}`} onPress={() => void start()} busy={status.busy} />
+        {status.needsProfile && chosen && (
+          <Button
+            small
+            kind="secondary"
+            title="Set up posting profile"
+            onPress={() => router.push({ pathname: '/profile/[id]', params: { id: chosen } })}
+          />
+        )}
+      </View>
+    </View>
+  );
+}
+
+function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      onPress={onPress}
+      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, backgroundColor: on ? colors.accent : colors.input }}
+    >
+      <Text style={{ color: on ? colors.accentText : colors.text, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+    </Pressable>
   );
 }
 

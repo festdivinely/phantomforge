@@ -82,6 +82,12 @@ export default function AccountScreen() {
             )}
           </View>
 
+          <Button
+            kind="secondary"
+            title="Posting profile (for Claude drafts)"
+            onPress={() => router.push({ pathname: '/profile/[id]', params: { id } })}
+          />
+
           <View style={ui.card}>
             <Chips options={PERIODS} value={period} onChange={setPeriod} />
             <View style={[ui.row, { flexWrap: 'wrap' }]}>

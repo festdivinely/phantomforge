@@ -50,6 +50,16 @@ const envSchema = z.object({
   DAILY_SUMMARY_HOUR: z.coerce.number().int().min(0).max(23).default(20),
   OWNER_TIMEZONE: z.string().default('Africa/Lagos'),
 
+  /** Claude API key for drafting posts. Leave empty to run without drafting. */
+  ANTHROPIC_API_KEY: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  /** Local hour (0-23, OWNER_TIMEZONE) when auto-draft tops up waiting drafts. */
+  DRAFT_HOUR: z.coerce.number().int().min(0).max(23).default(8),
+  /** How many Claude drafts auto-draft keeps waiting per account. */
+  DRAFTS_WAITING: z.coerce.number().int().min(1).max(10).default(3),
+
   API_PORT: z.coerce.number().int().positive().default(3001),
   API_URL: z.string().url(),
   WEB_URL: z.string().url(),

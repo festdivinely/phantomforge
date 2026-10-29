@@ -1,5 +1,6 @@
 import { env } from '@pf/config';
 import { prisma } from '@pf/db';
+import { enqueueDrafting } from '@pf/queue';
 import { checkQuota } from '@pf/quota';
 
 type TelegramMessage = {
@@ -59,6 +60,21 @@ function startOfOwnerDay(now = new Date()): Date {
 
 function escapeHtml(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
+/** One plain message to the owner, for other parts of the worker. Never throws. */
+export async function notifyOwner(text: string): Promise<void> {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_OWNER_CHAT_ID) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat_id: env.TELEGRAM_OWNER_CHAT_ID, text }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    console.error('Telegram notify failed:', error instanceof Error ? error.message : 'unknown error');
+  }
 }
 
 export function startTelegramBot(): () => void {
@@ -162,6 +178,29 @@ export function startTelegramBot(): () => void {
     await send(chatId, `<b>Today's growth</b>\n\n${lines.join('\n\n')}`);
   }
 
+  async function requestDrafts(chatId: string, hint: string): Promise<void> {
+    if (!env.ANTHROPIC_API_KEY) {
+      await send(chatId, 'Drafting is off: ANTHROPIC_API_KEY is empty in the server .env.');
+      return;
+    }
+    const profiles = await prisma.postingProfile.findMany({
+      where: { identity: { status: { not: 'disabled' } } },
+      select: { identityId: true, about: true, topics: true, identity: { select: { label: true } } },
+    });
+    const ready = profiles.filter((p) => p.about.trim() || p.topics.trim());
+    if (ready.length === 0) {
+      await send(chatId, 'No account has a posting profile yet. Fill one in from the account screen in the app.');
+      return;
+    }
+    for (const p of ready) {
+      await enqueueDrafting({ identityId: p.identityId, count: 3, hint: hint || undefined, requestedBy: 'owner' });
+    }
+    await send(
+      chatId,
+      `Claude is writing drafts for ${ready.map((p) => escapeHtml(p.identity.label)).join(', ')}. I’ll message you when they’re ready.`,
+    );
+  }
+
   async function sendDailySummary(): Promise<void> {
     if (!env.TELEGRAM_OWNER_CHAT_ID) return;
     const date = localDateParts(new Date());
@@ -261,8 +300,10 @@ export function startTelegramBot(): () => void {
     if (text.startsWith('/start') || text.startsWith('/help')) {
       await send(
         chatId,
-        '<b>PhantomForge</b>\n/posts - review drafts\n/stats - today’s account activity\n/edit &lt;post id&gt; - edit and approve a draft',
+        '<b>PhantomForge</b>\n/posts - review drafts\n/stats - today’s account activity\n/draft - Claude writes 3 new drafts per account\n/draft &lt;idea&gt; - drafts about that idea\n/edit &lt;post id&gt; - edit and approve a draft',
       );
+    } else if (text.startsWith('/draft')) {
+      await requestDrafts(chatId, text.slice('/draft'.length).trim());
     } else if (text.startsWith('/posts')) {
       await listPendingPosts(chatId);
     } else if (text.startsWith('/stats')) {

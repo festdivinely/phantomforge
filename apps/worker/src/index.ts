@@ -5,8 +5,10 @@ import {
   connection,
   RUN_QUEUE_NAME,
   IDENTITY_QUEUE_NAME,
+  DRAFT_QUEUE_NAME,
   type RunJobData,
   type IdentityValidationJobData,
+  type DraftJobData,
 } from '@pf/queue';
 import { getAgent, getConnector, type IdentitySession } from '@pf/connectors';
 import { PhantomForgeError, isRetryable } from '@pf/core';
@@ -16,6 +18,7 @@ import { loadIdentitySession } from './identity-session.js';
 import { postUrlFrom, settlePost } from './posts.js';
 import { startScheduler } from './scheduler.js';
 import { startTelegramBot } from './telegram.js';
+import { executeDrafting, startAutoDrafter } from './drafter.js';
 
 /**
  * The worker: the only process in the system that drives a browser.
@@ -186,16 +189,26 @@ identityWorker.on('failed', (job, err) =>
   console.error(`Identity validation ${job?.data.identityId} failed: ${err.message}`),
 );
 
+/** Claude post drafting: one batch at a time, no browser involved. */
+const draftWorker = new Worker<DraftJobData, number>(DRAFT_QUEUE_NAME, executeDrafting, {
+  connection,
+  concurrency: 1,
+});
+draftWorker.on('completed', (job, made) => console.log(`Drafted ${made} posts for ${job.data.identityId}`));
+draftWorker.on('failed', (job, err) => console.error(`Drafting for ${job?.data.identityId} failed: ${err.message}`));
+
 console.log(`PhantomForge worker listening (concurrency ${env.WORKER_CONCURRENCY})`);
 
 const stopScheduler = startScheduler();
 const stopTelegramBot = startTelegramBot();
+const stopAutoDrafter = startAutoDrafter();
 
 async function shutdown() {
   console.log('Shutting down worker...');
   stopScheduler();
   stopTelegramBot();
-  await Promise.all([runWorker.close(), identityWorker.close()]);
+  stopAutoDrafter();
+  await Promise.all([runWorker.close(), identityWorker.close(), draftWorker.close()]);
   await browser?.close().catch(() => undefined);
   process.exit(0);
 }

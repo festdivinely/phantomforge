@@ -136,6 +136,25 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — Claude drafts LinkedIn posts (built; waiting for an API key to test).**
+Each account now has a **posting profile**: who you are, who the posts are
+for, topics, tone, what never to post about, and a few of your own past
+posts. Claude (Anthropic's AI, the `claude-opus-5-5` model) writes drafts
+from it. It is told never to invent facts about you (no fake jobs, clients,
+numbers or stories), it avoids repeating your recent posts, and it learns
+from drafts you skipped.
+
+Every draft lands in **Waiting for you**: nothing is posted unless you
+approve it. Ask for drafts from the phone (Posts tab -> **Draft with
+Claude**, with an optional idea) or Telegram (`/draft`, or `/draft <idea>`).
+Turn on **Draft every morning** in the profile and the worker keeps a few
+fresh drafts waiting each day. Telegram tells you when new drafts arrive.
+
+The drafting runs in the worker, not the API, like all other work. To turn it
+on, put an Anthropic API key in `ANTHROPIC_API_KEY` in the root `.env` and
+restart. Without a key everything else works and drafting explains that it
+is off.
+
 **2026-10-29 — The phone app, and pairing it with a QR code.**
 `apps/mobile` is the PhantomForge phone app, built with Expo (the same
 toolkit as Stallion Trader). It shows each account with today's numbers; an

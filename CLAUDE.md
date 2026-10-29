@@ -54,6 +54,16 @@ connection in expo-secure-store, and finds its org via `GET /api/me`. The
 dashboard binds to 127.0.0.1 only, because its pages carry the owner token.
 Never send the owner token over Telegram or any third party.
 
+**Claude post drafting (2026-10-29), built, not yet run against the real API**
+(needs the owner's `ANTHROPIC_API_KEY` in `.env`): `PostingProfile` per
+identity; `POST /api/posts/draft` queues `pf-post-drafts`; the worker's
+`drafter.ts` calls `client.beta.messages.parse` on `claude-opus-5-5` with
+effort high, JSON-schema output and `fallbacks: "default"`, and saves
+`pending_approval` drafts with `source: "claude"`. The system prompt forbids
+invented facts about the owner - keep that rule. Bad key / bad request /
+refusal are `UnrecoverableError` (no retry); rate limits and network errors
+retry.
+
 **Telegram owner bot is implemented (2026-10-29):** optional long polling in
 the worker, owner-chat restriction, post approve/edit/skip, daily activity
 summary, and identity/quota alerts. It requires `TELEGRAM_BOT_TOKEN` and
