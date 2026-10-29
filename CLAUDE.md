@@ -26,10 +26,10 @@ the first real-account test (owner creates the account and pastes `li_at`).
 **Where it lives:** `C:\Users\HP\phantomforge` on the main PC (copied from the
 external disk on 2026-10-28), backed up to the private GitHub repo
 `festdivinely/phantomforge`. Docker Desktop runs there. MinIO is replaced by
-RustFS in `infra/docker-compose.yml`. The local dev DB still has a random org
-id from before the fixed `dev-org` seed; the dashboard needs
-`pnpm --filter @pf/db run reset` (Prisma asks for the owner's explicit
-consent) before its Run button works on that PC.
+RustFS in `infra/docker-compose.yml`. The dev DB was reset on 2026-10-29 so the
+org id is `dev-org`; the dashboard's Run button verified working there.
+`pnpm --filter @pf/db run reset` wipes the dev DB - Prisma refuses unless the
+owner explicitly consents.
 
 **The mental model that matters:** this is a *job execution platform* that
 happens to use a browser. The browser automation is a plugin. The platform

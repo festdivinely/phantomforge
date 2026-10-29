@@ -24,9 +24,12 @@ const DEFAULT_INPUT: Record<string, unknown> = {
   'linkedin.send-connection': { profileUrls: ['https://www.linkedin.com/in/example'] },
 };
 
-/** Real platforms act through a saved account; the mock works without one. */
+/**
+ * Real platforms act through a saved account. Write agents need one even on
+ * the mock, because the quota governor counts usage per account.
+ */
 function needsIdentity(agent: AgentSummary): boolean {
-  return agent.platform !== 'mock';
+  return agent.platform !== 'mock' || !agent.readOnly;
 }
 
 function defaultInputFor(key: string): string {
@@ -131,7 +134,7 @@ export function AgentList({ agents }: { agents: AgentSummary[] }) {
                   onChange={(e) => setChosen((prev) => ({ ...prev, [agent.key]: e.target.value }))}
                 >
                   <option value="">
-                    {needsIdentity(agent) ? `Choose a ${agent.platform} account…` : 'None (mock works without one)'}
+                    {needsIdentity(agent) ? `Choose a ${agent.platform} account…` : 'None (not needed)'}
                   </option>
                   {identities
                     .filter((i) => i.platform === agent.platform)
