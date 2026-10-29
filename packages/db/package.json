@@ -13,6 +13,7 @@
     "migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "push": "dotenv -e ../../.env -- prisma db push",
+    "reset": "dotenv -e ../../.env -- prisma migrate reset --force",
     "studio": "dotenv -e ../../.env -- prisma studio",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "typecheck": "tsc --noEmit"
@@ -24,6 +25,8 @@
     "@prisma/client": "^6.2.1"
   },
   "devDependencies": {
+    "@pf/config": "workspace:*",
+    "@pf/core": "workspace:*",
     "prisma": "^6.2.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",

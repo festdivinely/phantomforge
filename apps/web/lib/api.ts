@@ -10,9 +10,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 /**
  * TEMPORARY: there is no login/org-switching UI yet (that's better-auth,
  * not wired up). This is the "dev" organization created by
- * packages/db/prisma/seed.ts. Replace once real auth exists.
+ * packages/db/prisma/seed.ts, which gives it this fixed id. Replace once real
+ * auth exists.
  */
-export const DEV_ORG_ID = 'cmtn2fs2x0000ty98fs8d4bjf';
+export const DEV_ORG_ID = 'dev-org';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   // Only claim a JSON content-type when a body is actually being sent -

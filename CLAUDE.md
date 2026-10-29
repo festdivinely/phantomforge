@@ -12,13 +12,24 @@ first real target connector.
 **The goal (decided 2026-10-28, `docs/decisions/0005-growth-focus.md`):** grow
 one LinkedIn account's connections - accept and withdraw invitations, targeted
 connection requests, owner-approved daily posts, a growth dashboard. Leads are
-an optional extra. The roadmap (`docs/ROADMAP.md`) is ordered that way; Phase 3
-(auto-accept invitations) is next. No stealth tooling to beat LinkedIn's bot
-detection (fingerprint spoofing, CAPTCHA solving, proxies, fake accounts).
+an optional extra. The roadmap (`docs/ROADMAP.md`) is ordered that way. No
+stealth tooling to beat LinkedIn's bot detection (fingerprint spoofing,
+CAPTCHA solving, proxies, fake accounts).
+
+**Phase 3 (auto-accept invitations) - in progress, 2026-10-29.**
+`mock.accept-invitations` verified end to end; `linkedin.accept-invitations`
+written and verified only to stop at the login wall (AUTH_EXPIRED) - never run
+on a real logged-in account yet. Runs choose an identity in the dashboard.
+Still open in Phase 3: selector-health telemetry, the recurring schedule, and
+the first real-account test (owner creates the account and pastes `li_at`).
 
 **Where it lives:** `C:\Users\HP\phantomforge` on the main PC (copied from the
 external disk on 2026-10-28), backed up to the private GitHub repo
-`festdivinely/phantomforge`. Docker Desktop is not installed on that PC yet.
+`festdivinely/phantomforge`. Docker Desktop runs there. MinIO is replaced by
+RustFS in `infra/docker-compose.yml`. The local dev DB still has a random org
+id from before the fixed `dev-org` seed; the dashboard needs
+`pnpm --filter @pf/db run reset` (Prisma asks for the owner's explicit
+consent) before its Run button works on that PC.
 
 **The mental model that matters:** this is a *job execution platform* that
 happens to use a browser. The browser automation is a plugin. The platform

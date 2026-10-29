@@ -1,8 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createRun, DEV_ORG_ID, type AgentSummary } from '@/lib/api';
+import {
+  createRun,
+  DEV_ORG_ID,
+  fetchIdentities,
+  type AgentSummary,
+  type IdentitySummary,
+} from '@/lib/api';
 
 /**
  * Sensible starting input per known agent, so a non-technical user has
@@ -13,8 +19,15 @@ import { createRun, DEV_ORG_ID, type AgentSummary } from '@/lib/api';
 const DEFAULT_INPUT: Record<string, unknown> = {
   'mock.collect-profiles': { query: 'growth marketer', limit: 5 },
   'mock.send-connection': { profileIds: ['test-1', 'test-2'], failureRate: 0 },
+  'mock.accept-invitations': { pending: 8, max: 5, failureRate: 0 },
+  'linkedin.accept-invitations': { max: 10 },
   'linkedin.send-connection': { profileUrls: ['https://www.linkedin.com/in/example'] },
 };
+
+/** Real platforms act through a saved account; the mock works without one. */
+function needsIdentity(agent: AgentSummary): boolean {
+  return agent.platform !== 'mock';
+}
 
 function defaultInputFor(key: string): string {
   return JSON.stringify(DEFAULT_INPUT[key] ?? {}, null, 2);
@@ -26,6 +39,14 @@ export function AgentList({ agents }: { agents: AgentSummary[] }) {
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [identities, setIdentities] = useState<IdentitySummary[]>([]);
+  const [chosen, setChosen] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetchIdentities()
+      .then(setIdentities)
+      .catch(() => setIdentities([]));
+  }, []);
 
   if (agents.length === 0) {
     return (
@@ -36,10 +57,15 @@ export function AgentList({ agents }: { agents: AgentSummary[] }) {
     );
   }
 
-  async function handleRun(agentKey: string) {
+  async function handleRun(agent: AgentSummary) {
+    const agentKey = agent.key;
     setSubmitting(true);
     setFormError(null);
     try {
+      const identityId = chosen[agentKey] || null;
+      if (!identityId && needsIdentity(agent)) {
+        throw new Error(`Choose which ${agent.platform} account this run should use.`);
+      }
       const raw = inputs[agentKey] ?? defaultInputFor(agentKey);
       let parsed: Record<string, unknown>;
       try {
@@ -50,7 +76,7 @@ export function AgentList({ agents }: { agents: AgentSummary[] }) {
       const run = await createRun({
         organizationId: DEV_ORG_ID,
         agentKey,
-        identityId: null,
+        identityId,
         input: parsed,
       });
       router.push(`/runs/${run.id}`);
@@ -97,6 +123,32 @@ export function AgentList({ agents }: { agents: AgentSummary[] }) {
             {isOpen && (
               <div className="mt-4 border-t border-neutral-800 pt-4">
                 <label className="text-xs uppercase tracking-wider text-neutral-500">
+                  Account
+                </label>
+                <select
+                  className="mt-2 mb-4 w-full rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-200"
+                  value={chosen[agent.key] ?? ''}
+                  onChange={(e) => setChosen((prev) => ({ ...prev, [agent.key]: e.target.value }))}
+                >
+                  <option value="">
+                    {needsIdentity(agent) ? `Choose a ${agent.platform} account…` : 'None (mock works without one)'}
+                  </option>
+                  {identities
+                    .filter((i) => i.platform === agent.platform)
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.label} - {i.status}
+                        {i.status !== 'active' && i.statusReason ? ` (${i.statusReason})` : ''}
+                      </option>
+                    ))}
+                </select>
+                {needsIdentity(agent) &&
+                  identities.filter((i) => i.platform === agent.platform).length === 0 && (
+                    <p className="-mt-2 mb-4 text-sm text-amber-400">
+                      No {agent.platform} account saved yet - add one on the Identities page.
+                    </p>
+                  )}
+                <label className="text-xs uppercase tracking-wider text-neutral-500">
                   Input (JSON)
                 </label>
                 <textarea
@@ -112,7 +164,7 @@ export function AgentList({ agents }: { agents: AgentSummary[] }) {
                 <button
                   type="button"
                   disabled={submitting}
-                  onClick={() => handleRun(agent.key)}
+                  onClick={() => handleRun(agent)}
                   className="mt-3 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
                 >
                   {submitting ? 'Starting…' : 'Start run'}

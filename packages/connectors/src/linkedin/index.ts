@@ -2,6 +2,7 @@ import type { Browser, BrowserContext, Page } from 'playwright';
 import type { Connector, IdentitySession, SessionValidation } from '../base/connector.js';
 import { createLinkedInContext, validateLinkedInSession } from './session.js';
 import { sendConnectionAgent } from './agents/send-connection.js';
+import { acceptInvitationsAgent } from './agents/accept-invitations.js';
 
 /**
  * LinkedIn connector.
@@ -13,7 +14,7 @@ import { sendConnectionAgent } from './agents/send-connection.js';
 export const linkedinConnector: Connector = {
   platform: 'linkedin',
   name: 'LinkedIn',
-  agents: [sendConnectionAgent],
+  agents: [acceptInvitationsAgent, sendConnectionAgent],
 
   createBrowserContext(browser: Browser, session: IdentitySession): Promise<BrowserContext> {
     return createLinkedInContext(browser, session);

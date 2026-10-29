@@ -49,12 +49,18 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.RUN_TIMEOUT_MS);
 
-  const browserInstance = await getBrowser();
-  const session = identityId ? await loadIdentitySession(identityId) : ANONYMOUS_SESSION;
-  const context = await connector.createBrowserContext(browserInstance, session);
-  const page = await context.newPage();
+  // Declared out here so `finally` can close them; created inside the try so a
+  // failure while loading the session (e.g. a cookie that won't decrypt) marks
+  // the Run failed instead of leaving it stuck at "running".
+  let context: Awaited<ReturnType<typeof connector.createBrowserContext>> | undefined;
+  let page: Awaited<ReturnType<NonNullable<typeof context>['newPage']>> | undefined;
 
   try {
+    const browserInstance = await getBrowser();
+    const session = identityId ? await loadIdentitySession(identityId) : ANONYMOUS_SESSION;
+    context = await connector.createBrowserContext(browserInstance, session);
+    page = await context.newPage();
+
     const ctx = createAgentContext({
       runId,
       organizationId,
@@ -92,8 +98,8 @@ async function executeRun(job: Job<RunJobData>): Promise<void> {
     if (isRetryable(error)) throw error;
   } finally {
     clearTimeout(timeout);
-    await page.close().catch(() => undefined);
-    await context.close().catch(() => undefined);
+    await page?.close().catch(() => undefined);
+    await context?.close().catch(() => undefined);
   }
 }
 

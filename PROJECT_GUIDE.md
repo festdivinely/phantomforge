@@ -136,6 +136,25 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — First growth agent: accept invitations.**
+PhantomForge can now accept incoming LinkedIn invitations automatically.
+- On the fake LinkedIn it works start to finish: with 8 invitations waiting
+  and a limit of 5 per run, it accepted 5, human-paced, and left 3 for the
+  next run.
+- The real LinkedIn version is written. It opens the "invitations received"
+  page, accepts one at a time with the safety budget and pauses, and stops
+  straight away if a click doesn't go through or LinkedIn asks for
+  verification. Tested without a login, it stopped at LinkedIn's login page
+  with a clear "session expired" message and clicked nothing. It has not
+  been tried on a real logged-in account yet.
+- The dashboard now asks which account a run should use (real LinkedIn
+  runs require one), and explains what to do when an account's login has
+  expired or LinkedIn wants verification.
+- Three bugs fixed: a run whose saved login couldn't be unlocked stayed
+  "running" forever instead of failing; the built-in test account had a
+  scrambled login that couldn't be unlocked; and the dashboard's workspace
+  id only matched the old PC's database.
+
 **2026-10-29 — Running on the main PC; file storage swapped.**
 Docker was installed on the main PC and the whole system started there.
 MinIO (the file-storage box) no longer publishes its Docker images, so it

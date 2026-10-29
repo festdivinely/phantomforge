@@ -61,11 +61,18 @@ not been attempted yet - that's a deliberate, separate decision.
 
 Lowest risk, instant growth: accept every incoming invitation on a schedule.
 
-- [ ] Phase 2 leftovers: pick a saved Identity in the trigger-a-run form
-      (every Run still sends identityId: null); show "session expired - paste
-      a new cookie" clearly on the identity
-- [ ] `mock.accept-invitations` against the mock platform
-- [ ] `linkedin.accept-invitations` (resilient selectors, quota `connection_accept`)
+- [x] Phase 2 leftovers: pick a saved Identity in the trigger-a-run form
+      (required for real platforms); expired / challenged / restricted
+      identities explain what to do (2026-10-29)
+- [x] `mock.accept-invitations` against the mock platform (verified
+      2026-10-29: 8 pending, max 5 -> 5 accepted, 3 left for the next run)
+- [x] `linkedin.accept-invitations` written (resilient selectors, quota
+      `connection_accept`, stops on a click that doesn't land). Verified it
+      stops at the login wall with AUTH_EXPIRED when there is no session;
+      **not yet run on a real logged-in account**
+- [x] Fixed: a session that fails to decrypt left the Run stuck at
+      "running"; the seeded mock identity held undecryptable bytes; the dev
+      org id is now fixed (`dev-org`) instead of random
 - [ ] `selector_health` telemetry recorded on every resolve
 - [ ] Screenshot artifact captured on unexpected DOM state
 - [ ] Simple recurring schedule (e.g. every 4 hours, Africa/Lagos time)

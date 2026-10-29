@@ -31,9 +31,20 @@ export const sendInviteButton = selector('send-invite-button', [
   byCss('aria-label-send', 'button[aria-label*="Send" i]'),
 ]);
 
+// On the invitation manager the accessible name is the full aria-label,
+// e.g. "Accept Jane Doe's invitation", so match the start, not the whole name.
 export const acceptInviteButton = selector('accept-invite-button', [
+  byRole('aria-accept-invitation', 'button', { name: /^accept\b.*invitation/i }),
   byRole('aria-accept', 'button', { name: /^accept$/i }),
   byCss('aria-label-accept', 'button[aria-label*="Accept" i]'),
+]);
+
+/** The invitation manager's "nothing here" state, so empty is not mistaken for a broken page. */
+export const noInvitationsMessage = selector('no-invitations-message', [
+  {
+    name: 'text-no-invitations',
+    locate: (scope) => scope.getByText(/no (pending|new)? ?invitations/i),
+  },
 ]);
 
 export const ignoreInviteButton = selector('ignore-invite-button', [

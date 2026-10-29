@@ -5,16 +5,30 @@
  * Safe to re-run - everything is upserted.
  */
 import { PrismaClient } from '@prisma/client';
-import { randomBytes } from 'node:crypto';
+import { env } from '@pf/config';
+import { encryptJson } from '@pf/core';
 
 const prisma = new PrismaClient();
+
+/**
+ * Fixed, not generated: the dashboard has no org switcher yet and hard-codes
+ * this id (apps/web/lib/api.ts DEV_ORG_ID). A random id broke the dashboard on
+ * every fresh database, e.g. after moving to another PC.
+ */
+const DEV_ORG_ID = 'dev-org';
 
 async function main() {
   const org = await prisma.organization.upsert({
     where: { slug: 'dev' },
     update: {},
-    create: { name: 'Dev Workspace', slug: 'dev' },
+    create: { id: DEV_ORG_ID, name: 'Dev Workspace', slug: 'dev' },
   });
+  if (org.id !== DEV_ORG_ID) {
+    console.warn(
+      `The "dev" org has id ${org.id}, not ${DEV_ORG_ID}, so the dashboard won't find it. ` +
+        'Reset the dev database: pnpm --filter @pf/db run reset',
+    );
+  }
 
   const user = await prisma.user.upsert({
     where: { email: 'dev@phantomforge.local' },
@@ -32,17 +46,27 @@ async function main() {
     where: { organizationId: org.id, platform: 'mock' },
   });
 
-  if (!existingIdentity) {
-    // The mock platform needs no real session, so placeholder bytes are fine.
+  // The mock platform needs no real session, but the worker still decrypts
+  // every identity it runs on, so store a genuinely encrypted empty cookie
+  // list. (Random placeholder bytes failed decryption and broke mock runs.)
+  const encrypted = encryptJson([], env.PF_ENCRYPTION_KEY);
+  const sealed = {
+    encryptedCookies: encrypted.ciphertext,
+    encryptionIv: encrypted.iv,
+    encryptionTag: encrypted.tag,
+  };
+
+  if (existingIdentity) {
+    // Repairs mock identities seeded before the fix above.
+    await prisma.identity.update({ where: { id: existingIdentity.id }, data: sealed });
+  } else {
     await prisma.identity.create({
       data: {
         organizationId: org.id,
         platform: 'mock',
         label: 'Mock Account',
         accountName: 'mock-user',
-        encryptedCookies: randomBytes(16),
-        encryptionIv: randomBytes(12),
-        encryptionTag: randomBytes(16),
+        ...sealed,
       },
     });
   }

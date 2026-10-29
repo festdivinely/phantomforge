@@ -138,6 +138,19 @@ export function IdentityManager({ initialIdentities }: { initialIdentities: Iden
                     : 'Never checked'}
                   {identity.statusReason ? ` — ${identity.statusReason}` : ''}
                 </p>
+                {identity.status === 'expired' && (
+                  <p className="mt-2 text-sm text-amber-400">
+                    This login has expired. Log in to {identity.platform} in your browser, copy a
+                    fresh session cookie, and add it again above - runs on this account will fail
+                    until then.
+                  </p>
+                )}
+                {(identity.status === 'challenged' || identity.status === 'restricted') && (
+                  <p className="mt-2 text-sm text-red-400">
+                    {identity.platform} is asking for verification or has restricted this account.
+                    Sort it out on {identity.platform} itself before running anything on it.
+                  </p>
+                )}
               </div>
               <button
                 type="button"
