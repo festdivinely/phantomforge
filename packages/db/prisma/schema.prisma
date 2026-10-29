@@ -274,7 +274,7 @@ model RunLog {
   @@map("run_log")
 }
 
-/// Screenshots, DOM snapshots and exports. Stored in S3/MinIO; this is the pointer.
+/// Screenshots, DOM snapshots and exports. Stored in S3 (RustFS locally); this is the pointer.
 model RunArtifact {
   id          String   @id @default(cuid())
   kind        String

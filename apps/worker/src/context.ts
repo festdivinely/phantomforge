@@ -96,7 +96,7 @@ export function createAgentContext(params: {
     },
 
     async captureArtifact(kind: RunArtifact['kind'], note?: string): Promise<RunArtifact> {
-      // TODO(Phase 7): upload to S3/MinIO and store the real key.
+      // TODO(Phase 7): upload to S3/RustFS and store the real key.
       const key = `runs/${runId}/${kind}-${Date.now()}.png`;
       const artifact: RunArtifact = {
         kind,

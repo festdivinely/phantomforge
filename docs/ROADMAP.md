@@ -2,6 +2,17 @@
 
 One phase at a time. A phase is done when it *runs*, not when the code exists.
 
+## Goal (decided 2026-10-28)
+
+PhantomForge exists to **grow one LinkedIn account's connections**: posting,
+sending, accepting and withdrawing requests, everything that helps the account
+grow. Lead collection is an optional extra, not the point. See
+`decisions/0005-growth-focus.md`. Phases 3 onward are ordered by growth value,
+lowest risk first.
+
+Every phase is built and verified against the **mock connector first**, then
+tried on the real account with low limits.
+
 ---
 
 ## Phase 0 — Foundation ✅
@@ -11,7 +22,7 @@ docs, git. Nothing executes end to end yet — that is Phase 1's job.
 
 ---
 
-## Phase 1 — Walking skeleton ⬅️ NEXT
+## Phase 1 — Walking skeleton ✅
 
 **Goal:** click a button, watch a job run, see rows appear. No LinkedIn, no real browser.
 
@@ -34,66 +45,105 @@ discover their platform cannot report on it. Do not skip it.
 
 ---
 
-## Phase 2 — Identity vault
+## Phase 2 — Identity vault ✅ (leftovers moved into Phase 3)
 
 - [x] Capture LinkedIn cookies (manual `li_at` paste, via the dashboard)
 - [x] Encrypt with `@pf/core/crypto`, store on `Identity`
 - [x] Worker decrypts and injects into the browser context
 - [x] `validateSession()` reachable from the UI (POST .../validate, polled)
-- [ ] Re-authentication flow when a session expires (surfaced as a status,
-      no guided re-auth UI yet)
-- [ ] Wire a saved Identity into the trigger-a-run UI (currently every Run
-      still sends identityId: null - the plumbing exists, the form doesn't
-      expose it yet)
 
 **Verified working (mock identity, 2026-09-04).** A real LinkedIn login has
 not been attempted yet - that's a deliberate, separate decision.
 
 ---
 
-## Phase 3 — First real agent (read-only)
+## Phase 3 — Auto-accept invitations (first real agent) ⬅️ NEXT
 
-- [ ] `linkedin.scrape-profile` — lowest risk, teaches the selector layer
+Lowest risk, instant growth: accept every incoming invitation on a schedule.
+
+- [ ] Phase 2 leftovers: pick a saved Identity in the trigger-a-run form
+      (every Run still sends identityId: null); show "session expired - paste
+      a new cookie" clearly on the identity
+- [ ] `mock.accept-invitations` against the mock platform
+- [ ] `linkedin.accept-invitations` (resilient selectors, quota `connection_accept`)
 - [ ] `selector_health` telemetry recorded on every resolve
 - [ ] Screenshot artifact captured on unexpected DOM state
-- [ ] Search-results pagination with checkpointing
+- [ ] Simple recurring schedule (e.g. every 4 hours, Africa/Lagos time)
 
 ---
 
-## Phase 4 — Action agents
+## Phase 4 — Auto-withdraw old invitations
 
-- [ ] `linkedin.send-connection` (replaces the current stub)
-- [ ] `linkedin.withdraw-pending`
-- [ ] `linkedin.accept-invitations` / `linkedin.reject-invitations`
-- [ ] `linkedin.send-message`
-- [ ] `linkedin.create-post`
+Unanswered invitations pile up and hurt the account. Withdraw them regularly.
 
-Every one of these goes through the quota governor. No exceptions.
+- [ ] `linkedin.withdraw-pending`: withdraw sent invitations older than N days
+      (default 21), quota `connection_withdraw`
+- [ ] Remember each withdrawn person so they are not invited again soon
 
 ---
 
-## Phase 5 — Quota governor + scheduler
+## Phase 5 — Targeted connection requests
 
-- [ ] Per-org configurable limits, not just env defaults
-- [ ] Warm-up ramping for new identities
-- [ ] Cron schedules with timezone handling
-- [ ] Quota dashboard: what is left today, per identity
+Send to the people most likely to accept, staying under LinkedIn's limits.
+
+- [ ] **Weekly** ceiling in the quota governor (LinkedIn caps invitations at
+      roughly 100/week), not just daily; default ~15-20/day on weekdays
+- [ ] Warm-up ramping: a new or quiet account starts low and rises over weeks
+- [ ] Target sources, best first:
+      1. people who liked or commented on our posts
+      2. 2nd-degree connections in chosen locations (e.g. Nigeria) and
+         industries, preferring profiles with fewer connections (they accept more)
+- [ ] `linkedin.send-connection` (replaces the stub), optional short note
+- [ ] Track the acceptance rate per target source; pause sending if it drops
+      (many ignored or "I don't know this person" invitations lead to restrictions)
 
 ---
 
-## Phase 6 — Leads and export
+## Phase 6 — Daily posting
 
-- [ ] Lead list with filtering and search
+Good posts bring connections *to* the account - the safest growth of all.
+
+- [ ] Post drafts written by Claude from notes about the owner's topics;
+      **the owner approves every post** before it is published
+- [ ] Publish on a schedule (decide official LinkedIn API vs browser agent in a
+      decision record first; the official API is lower risk for posts)
+- [ ] Remember which posts got the most reactions, to guide future drafts
+
+---
+
+## Phase 7 — Growth dashboard
+
+- [ ] Daily snapshot per identity: connections, followers, pending invitations,
+      invitations sent, acceptance rate
+- [ ] Charts over time; what is left of today's and this week's quota
+
+---
+
+## Phase 8 — Extras
+
+- [ ] Short welcome message to new connections (owner-approved template)
+- [ ] Lead list with filtering and search, CSV export, webhook delivery
 - [ ] Campaigns: sequences of agents against a lead segment
-- [ ] CSV export, webhook delivery
-- [ ] Interaction timeline per lead
+- [ ] Interaction timeline per person
 
 ---
 
-## Phase 7 — Hardening
+## Phase 9 — Hardening
 
+- [ ] Per-identity configurable limits, not just env defaults
 - [ ] Full failure forensics (screenshot + DOM + HAR) uploaded to storage
 - [ ] Retry policy tuned per error code
 - [ ] Selector-health alerting
 - [ ] Run cancellation mid-flight, verified
 - [ ] Playwright test suite against the mock connector
+
+---
+
+## Lines we do not cross
+
+- Stay under LinkedIn's invitation limits. Raising a quota is a decision, never a default.
+- No stealth tooling to beat LinkedIn's bot detection: no fingerprint spoofing,
+  CAPTCHA solving, proxy rotation or extra fake accounts. If detection becomes
+  a problem, the answer is lower limits.
+- The account owner creates and logs in to the LinkedIn account and pastes the
+  session cookie into the dashboard themselves.

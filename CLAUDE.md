@@ -9,6 +9,17 @@ project by Divine. Browser automation (Playwright) driving real logged-in
 sessions. SaaS-shaped from day one: multi-user, orgs, auth. LinkedIn is the
 first real target connector.
 
+**The goal (decided 2026-10-28, `docs/decisions/0005-growth-focus.md`):** grow
+one LinkedIn account's connections - accept and withdraw invitations, targeted
+connection requests, owner-approved daily posts, a growth dashboard. Leads are
+an optional extra. The roadmap (`docs/ROADMAP.md`) is ordered that way; Phase 3
+(auto-accept invitations) is next. No stealth tooling to beat LinkedIn's bot
+detection (fingerprint spoofing, CAPTCHA solving, proxies, fake accounts).
+
+**Where it lives:** `C:\Users\HP\phantomforge` on the main PC (copied from the
+external disk on 2026-10-28), backed up to the private GitHub repo
+`festdivinely/phantomforge`. Docker Desktop is not installed on that PC yet.
+
 **The mental model that matters:** this is a *job execution platform* that
 happens to use a browser. The browser automation is a plugin. The platform
 around it — queue, workers, quota, checkpointing, observability — is the project.
@@ -56,7 +67,7 @@ TypeScript everywhere, pnpm workspaces + Turborepo, Node 22+.
 | Worker | BullMQ + Playwright |
 | DB | PostgreSQL + Prisma 6 |
 | Queue/cache | Redis |
-| Storage | S3-compatible (MinIO locally) |
+| Storage | S3-compatible (RustFS locally; MinIO images were discontinued) |
 | Auth | better-auth + organization plugin (not wired yet) |
 
 Internal packages ship **TypeScript source**, not builds — `main` points at
@@ -137,7 +148,7 @@ session follows it without being asked again.
 pnpm install            # once
 pnpm browsers           # fetch Playwright chromium (separate from pnpm install)
 node scripts/generate-secrets.mjs   # creates .env with real secrets
-pnpm infra:up           # postgres + redis + minio
+pnpm infra:up           # postgres + redis + rustfs (S3 storage)
 pnpm db:generate        # prisma client
 pnpm db:migrate         # create/apply migrations
 pnpm db:seed            # dev org, user, mock identity, sample agent config

@@ -15,14 +15,14 @@ checkbox, and a lead graph instead of a pile of CSVs.
 pnpm install
 pnpm browsers                       # fetch the Playwright chromium binary
 node scripts/generate-secrets.mjs   # writes .env with generated secrets
-pnpm infra:up                       # postgres + redis + minio (Docker must be RUNNING)
+pnpm infra:up                       # postgres + redis + rustfs storage (Docker must be RUNNING)
 pnpm db:generate && pnpm db:migrate && pnpm db:seed
 pnpm dev
 ```
 
 - Dashboard: http://localhost:3000
 - API: http://localhost:3001/health
-- MinIO console: http://localhost:9001 (phantomforge / phantomforge)
+- Storage (RustFS) console: http://localhost:9001 (phantomforge / phantomforge)
 
 Requires Node 22+, pnpm 9+, and Docker Desktop.
 

@@ -136,6 +136,31 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — Running on the main PC; file storage swapped.**
+Docker was installed on the main PC and the whole system started there.
+MinIO (the file-storage box) no longer publishes its Docker images, so it
+was replaced with RustFS, which works the same way (same address, same
+login, no code changes). Database tables and starter data were set up, and a
+test run against the fake LinkedIn succeeded: 5 profiles processed, 0 failed.
+
+**2026-10-28 — New goal: grow one LinkedIn account.**
+The owner made the goal clear: PhantomForge is for growing his own LinkedIn
+account's connections, not mainly for collecting leads. The plan was
+reordered to match, most useful and safest first:
+1. Accept incoming invitations automatically, on a schedule.
+2. Withdraw old unanswered invitations (too many pending ones hurt the account).
+3. Send connection requests to people likely to accept - people who reacted
+   to our posts first, then people in chosen places (like Nigeria) and
+   industries with fewer connections - while staying under LinkedIn's limit
+   of roughly 100 invitations a week.
+4. Publish a good post every day; Claude drafts, the owner approves each one.
+5. A growth dashboard: connections, followers, pending invitations and
+   acceptance rate over time.
+Lead lists and exports stay as optional extras later. Nothing already built
+changes - the queue, worker, login vault and safety budget are all reused.
+The project was also moved from the external disk to the main PC and backed
+up to a private GitHub repository; it installs and type-checks cleanly there.
+
 **2026-09-04 — Phase 2 (Identity vault) verified working.**
 Added the ability to save a real logged-in account for the system to act
 through, safely. Specifically:
@@ -192,18 +217,17 @@ had been run yet — that happened later the same day (see above).
 
 ## 8. What's being worked on right now
 
-Building the dashboard so you can click a button to start a Run and watch it
-happen live, instead of typing technical commands. This does not change
-anything explained above — it's a visible front door onto the system that
-already works.
+Automatically accepting incoming LinkedIn invitations (Phase 3) - built and
+tested on the fake LinkedIn first, then tried carefully on the real account.
+It also finishes two small login-vault leftovers: choosing which saved
+account a Run uses, and showing clearly when a login has expired.
 
 ## 9. What's next after that
 
-In order: teaching the system to save a real (throwaway, for safety) LinkedIn
-login → building a read-only "look at a profile" task to prove real-browser
-automation works → building the real write actions (send/accept/reject
-connection requests, post) → a proper dashboard for the safety budgets →
-a real contact-list view with search, export, and history.
+In order: withdrawing old invitations → sending connection requests to
+people likely to accept → daily owner-approved posts → a growth dashboard →
+extras like welcome messages and lead lists. The full checklist is in
+`docs/ROADMAP.md`.
 
 ---
 
