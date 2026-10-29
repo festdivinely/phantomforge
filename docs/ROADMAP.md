@@ -164,11 +164,14 @@ The owner runs everything from a phone; the backend runs on a server.
       per-account activity summaries, and urgent identity/quota alerts. Needs
       BotFather token and owner chat ID configured in `.env`; `/stats` and
       `/posts` both respond.
-- [ ] Phone app (Expo, `apps/mobile`) - **built 2026-10-29, not yet tested
-      on a device**: QR pairing (dashboard `/pair`) or manual address +
-      token, accounts list -> per-account totals, 14-day chart, safety
-      limits and schedule on/off, live activity feed, post approvals and
-      new drafts. Tick this once it works on the owner's phone.
+- [x] Phone app (Expo, `apps/mobile`) - verified on the owner's real phone
+      2026-10-29 (Expo Go over Wi-Fi): QR pairing (dashboard `/pair`) or
+      manual address + token, accounts list -> per-account totals, 14-day
+      chart, safety limits and schedule on/off, live activity feed, post
+      approvals and new drafts. Server log: every request 200, no errors.
+      Needs the Windows Firewall rule "PhantomForge dev (Expo 8081, API
+      3001)" (Private profile) - Node was only allowed on Public networks.
+- [ ] Standalone APK (EAS build) so the app runs without Expo Go and the PC
 - [ ] Remote login: the phone shows the server's browser live; the owner
       types email / password / codes and solves any CAPTCHA by hand, so the
       session is created from the server's own location. Passwords are never

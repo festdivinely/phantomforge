@@ -157,8 +157,13 @@ Also fixed: when an old tunnel shut down it deleted the saved address even
 if a newer tunnel had already written its own; now each tunnel only removes
 its own. `/api/me` tells the app which workspace it belongs to.
 
-Not yet done: testing the app on the owner's real phone. The PC's virtual
-phone could not run (7.4 GB of RAM was not enough with everything else open).
+**Verified the same day on the owner's real phone** (Expo Go over Wi-Fi):
+pairing by QR, accounts, account details, posts and activity all worked,
+and the server logged no errors. The PC's virtual phone couldn't be used
+(7.4 GB of RAM wasn't enough with everything else open). One setup step was
+needed: Windows Firewall only let Node.js accept connections on *public*
+networks, so the owner added a rule allowing ports 8081 (Expo) and 3001 (the
+API) on *private* networks.
 
 **2026-10-29 — The API can be reached from the internet (Cloudflare quick tunnel).**
 `pnpm tunnel` opens a Cloudflare "quick tunnel": a free, temporary web
@@ -332,8 +337,8 @@ had been run yet — that happened later the same day (see above).
 Done so far: accepting and withdrawing invitations, schedules, post
 approvals and stats (all on the fake LinkedIn), the API login and the
 Telegram bot, a quick Cloudflare tunnel to the API, and the phone app with
-QR pairing. Next: **test the phone app on the owner's phone** and fix what
-turns up.
+QR pairing, verified on the owner's phone. Next: Claude drafting posts for
+approval, then a standalone app (APK) that doesn't need Expo Go.
 
 ## 9. What's next after that
 

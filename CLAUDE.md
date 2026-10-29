@@ -43,7 +43,9 @@ Verified locally: a protected API route returned 401 without the token and
 API only; verified from the internet on 2026-10-29. Its address changes each
 start. A permanent address (account + domain) is still to do.
 
-**Phone app (2026-10-29), built but not yet run on a device:** `apps/mobile`,
+**Phone app (2026-10-29), verified on the owner's real phone via Expo Go
+over Wi-Fi** (needs the owner-added firewall rule "PhantomForge dev (Expo
+8081, API 3001)", Private profile): `apps/mobile`,
 Expo SDK 58 + expo-router (`src/app`), installed with npm and excluded from
 the pnpm workspace (`!apps/mobile`) because its React differs from the web's;
 `react-dom` is pinned to 19.3.0 to match. It pairs by scanning the dashboard's
