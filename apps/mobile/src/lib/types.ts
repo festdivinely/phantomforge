@@ -104,3 +104,13 @@ export interface DraftJob {
   made?: number;
   error?: string;
 }
+
+export interface LoginState {
+  status: 'starting' | 'live' | 'saving' | 'done' | 'failed' | 'cancelled' | 'expired';
+  message?: string;
+  page?: string;
+  identityId?: string;
+  width: number;
+  height: number;
+  updatedAt: string;
+}

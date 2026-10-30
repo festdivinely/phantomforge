@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { Empty, ErrorBanner, Loading, Stat, StatusPill } from '../../components/ui';
+import { useState } from 'react';
+import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { Button, Empty, ErrorBanner, Loading, Stat, StatusPill } from '../../components/ui';
 import { useSession } from '../../lib/connection';
 import { KIND_VERBS, timeAgo } from '../../lib/format';
 import { colors, ui } from '../../lib/theme';
@@ -24,7 +25,7 @@ export default function AccountsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.accent} />}
     >
       <ErrorBanner error={error} onRetry={() => void reload()} />
-      {data?.length === 0 && <Empty>No accounts yet. Add one in the dashboard on the PC.</Empty>}
+      {data?.length === 0 && <Empty>No accounts yet. Add your LinkedIn account below.</Empty>}
       {data?.map((account) => {
         const t = account.today;
         const last = account.lastActivity;
@@ -32,7 +33,7 @@ export default function AccountsScreen() {
           <Pressable
             key={account.id}
             accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/account/[id]', params: { id: account.id, label: account.label } })}
+            onPress={() => router.push({ pathname: '/account/[id]', params: { id: account.id, label: account.label, platform: account.platform } })}
             style={({ pressed }) => [ui.card, pressed && { opacity: 0.7 }]}
           >
             <View style={[ui.row, { justifyContent: 'space-between' }]}>
@@ -61,6 +62,49 @@ export default function AccountsScreen() {
           </Pressable>
         );
       })}
+      {data && <AddLinkedInAccount orgId={session.orgId} />}
     </ScrollView>
+  );
+}
+
+/** Starts a remote login that adds a new LinkedIn account. */
+function AddLinkedInAccount({ orgId }: { orgId: string }) {
+  const { call } = useSession();
+  const [label, setLabel] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const start = async () => {
+    setBusy(true);
+    try {
+      const { id } = await call<{ id: string }>('/api/login-sessions', {
+        method: 'POST',
+        body: { organizationId: orgId, label: label.trim() },
+      });
+      setLabel('');
+      router.push({ pathname: '/login/[id]', params: { id } });
+    } catch (err) {
+      Alert.alert('Could not start the login', err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={ui.card}>
+      <Text style={ui.title}>Add a LinkedIn account</Text>
+      <Text style={ui.muted}>
+        You log in on LinkedIn's own page, shown live from the server. Your password goes straight to LinkedIn and is
+        never saved.
+      </Text>
+      <TextInput
+        style={ui.input}
+        value={label}
+        onChangeText={setLabel}
+        placeholder="A name for it, e.g. My LinkedIn"
+        placeholderTextColor={colors.muted}
+        maxLength={100}
+      />
+      <Button title="Log in to LinkedIn" onPress={() => void start()} busy={busy} disabled={!label.trim()} />
+    </View>
   );
 }

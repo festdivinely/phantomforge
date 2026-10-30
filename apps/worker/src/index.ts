@@ -1,39 +1,34 @@
 import { DelayedError, Worker, type Job } from 'bullmq';
-import { chromium, type Browser } from 'playwright';
 import { env } from '@pf/config';
 import {
   connection,
   RUN_QUEUE_NAME,
   IDENTITY_QUEUE_NAME,
   DRAFT_QUEUE_NAME,
+  LOGIN_QUEUE_NAME,
   type RunJobData,
   type IdentityValidationJobData,
   type DraftJobData,
+  type LoginJobData,
 } from '@pf/queue';
 import { getAgent, getConnector, type IdentitySession } from '@pf/connectors';
 import { PhantomForgeError, isRetryable } from '@pf/core';
 import { prisma } from '@pf/db';
+import { closeBrowsers, getBrowser, lockIdentity } from './browsers.js';
 import { createAgentContext } from './context.js';
 import { loadIdentitySession } from './identity-session.js';
 import { postUrlFrom, settlePost } from './posts.js';
 import { startScheduler } from './scheduler.js';
 import { notifyOwner, startTelegramBot } from './telegram.js';
 import { executeDrafting, startAutoDrafter } from './drafter.js';
+import { executeRemoteLogin } from './remote-login.js';
 
 /**
  * The worker: the only process in the system that drives a browser.
  *
- * One browser instance, one context per run or per validation check, torn
- * down every time. Contexts are never reused across identities.
+ * One browser per mode (see browsers.ts), one context per run, validation or
+ * login, torn down every time. Contexts are never reused across identities.
  */
-let browser: Browser | null = null;
-
-async function getBrowser(): Promise<Browser> {
-  if (!browser || !browser.isConnected()) {
-    browser = await chromium.launch({ headless: env.PLAYWRIGHT_HEADLESS });
-  }
-  return browser;
-}
 
 const ANONYMOUS_SESSION: IdentitySession = { identityId: 'anonymous', cookies: [] };
 
@@ -41,20 +36,6 @@ const ANONYMOUS_SESSION: IdentitySession = { identityId: 'anonymous', cookies: [
 const CANCEL_POLL_MS = 3_000;
 /** When an account is busy, try the run again this much later. */
 const BUSY_RETRY_MS = 60_000;
-
-/**
- * One run per account at a time. Two runs on one account at once would double
- * its action rate and open two parallel sessions - both look like a bot.
- * Returns a release function, or null when the account is busy.
- */
-async function lockIdentity(identityId: string, runId: string): Promise<(() => Promise<void>) | null> {
-  const key = `pf:identity-busy:${identityId}`;
-  const ok = await connection.set(key, runId, 'PX', env.RUN_TIMEOUT_MS + 60_000, 'NX');
-  if (ok !== 'OK') return null;
-  return async () => {
-    if ((await connection.get(key)) === runId) await connection.del(key);
-  };
-}
 
 /** Final run states never overwrite a cancel the owner already made. */
 async function finishRun(runId: string, data: Parameters<typeof prisma.run.updateMany>[0]['data']) {
@@ -90,7 +71,9 @@ async function executeRun(job: Job<RunJobData>, token?: string): Promise<void> {
     }
   }
 
-  const release = identityId ? await lockIdentity(identityId, runId) : async () => undefined;
+  const release = identityId
+    ? await lockIdentity(identityId, runId, env.RUN_TIMEOUT_MS + 60_000)
+    : async () => undefined;
   if (!release) {
     await job.moveToDelayed(Date.now() + BUSY_RETRY_MS, token);
     throw new DelayedError();
@@ -120,7 +103,7 @@ async function executeRun(job: Job<RunJobData>, token?: string): Promise<void> {
   let page: Awaited<ReturnType<NonNullable<typeof context>['newPage']>> | undefined;
 
   try {
-    const browserInstance = await getBrowser();
+    const browserInstance = await getBrowser(agent.platform);
     const session = identityId ? await loadIdentitySession(identityId) : ANONYMOUS_SESSION;
     context = await connector.createBrowserContext(browserInstance, session);
     page = await context.newPage();
@@ -207,8 +190,15 @@ async function executeIdentityValidation(job: Job<IdentityValidationJobData>): P
   const identity = await prisma.identity.findUnique({ where: { id: job.data.identityId } });
   if (!identity) return;
 
+  // Never check an account while a run or login is using it.
+  const release = await lockIdentity(identity.id, `validate-${job.id}`, 3 * 60_000);
+  if (!release) {
+    console.log(`Identity ${identity.id} is busy; skipping this validation check`);
+    return;
+  }
+
   const connector = getConnector(identity.platform);
-  const browserInstance = await getBrowser();
+  const browserInstance = await getBrowser(identity.platform);
   const session = await loadIdentitySession(identity.id);
   const context = await connector.createBrowserContext(browserInstance, session);
   const page = await context.newPage();
@@ -238,6 +228,7 @@ async function executeIdentityValidation(job: Job<IdentityValidationJobData>): P
   } finally {
     await page.close().catch(() => undefined);
     await context.close().catch(() => undefined);
+    await release();
   }
 }
 
@@ -265,6 +256,10 @@ const draftWorker = new Worker<DraftJobData, number>(DRAFT_QUEUE_NAME, executeDr
 draftWorker.on('completed', (job, made) => console.log(`Drafted ${made} posts for ${job.data.identityId}`));
 draftWorker.on('failed', (job, err) => console.error(`Drafting for ${job?.data.identityId} failed: ${err.message}`));
 
+/** Remote login: one live login window at a time. */
+const loginWorker = new Worker<LoginJobData>(LOGIN_QUEUE_NAME, executeRemoteLogin, { connection, concurrency: 1 });
+loginWorker.on('failed', (job, err) => console.error(`Login session ${job?.data.sessionId} failed: ${err.message}`));
+
 console.log(`PhantomForge worker listening (concurrency ${env.WORKER_CONCURRENCY})`);
 
 const stopScheduler = startScheduler();
@@ -276,8 +271,8 @@ async function shutdown() {
   stopScheduler();
   stopTelegramBot();
   stopAutoDrafter();
-  await Promise.all([runWorker.close(), identityWorker.close(), draftWorker.close()]);
-  await browser?.close().catch(() => undefined);
+  await Promise.all([runWorker.close(), identityWorker.close(), draftWorker.close(), loginWorker.close()]);
+  await closeBrowsers();
   process.exit(0);
 }
 process.on('SIGINT', shutdown);

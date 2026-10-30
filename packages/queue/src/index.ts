@@ -101,6 +101,74 @@ export async function enqueueDrafting(data: DraftJobData): Promise<string> {
   return job.id ?? '';
 }
 
+// --- Remote login -----------------------------------------------------------
+// The owner logs in to LinkedIn in the server's own browser from the phone:
+// the worker streams screenshots into Redis, the API relays taps and typing
+// back. Keystrokes live only in a short Redis list the worker empties at once
+// and are never logged.
+
+export const LOGIN_QUEUE_NAME = 'pf-remote-login';
+
+export interface LoginJobData {
+  sessionId: string;
+  organizationId: string;
+  /** Set to log an existing account in again; omitted to add a new account. */
+  identityId?: string;
+  label: string;
+}
+
+export type LoginInput =
+  | { kind: 'tap'; x: number; y: number }
+  | { kind: 'text'; text: string }
+  | { kind: 'key'; key: 'Enter' | 'Tab' | 'Backspace' | 'Escape' }
+  | { kind: 'scroll'; dy: number };
+
+export interface LoginState {
+  status: 'starting' | 'live' | 'saving' | 'done' | 'failed' | 'cancelled' | 'expired';
+  message?: string;
+  /** Page address without its query string. */
+  page?: string;
+  identityId?: string;
+  /** Size of the live picture in page pixels, for mapping taps. */
+  width: number;
+  height: number;
+  updatedAt: string;
+}
+
+/** A login session lives at most this long. */
+export const LOGIN_TTL_SECONDS = 15 * 60;
+
+export const loginKeys = (sessionId: string) => ({
+  state: `pf:login:${sessionId}:state`,
+  frame: `pf:login:${sessionId}:frame`,
+  input: `pf:login:${sessionId}:input`,
+  cancel: `pf:login:${sessionId}:cancel`,
+});
+
+export const loginQueue = new Queue<LoginJobData>(LOGIN_QUEUE_NAME, {
+  connection,
+  defaultJobOptions: { attempts: 1, removeOnComplete: { age: 3_600 }, removeOnFail: { age: 86_400 } },
+});
+
+export async function setLoginState(sessionId: string, state: Omit<LoginState, 'updatedAt'>): Promise<void> {
+  await connection.set(
+    loginKeys(sessionId).state,
+    JSON.stringify({ ...state, updatedAt: new Date().toISOString() }),
+    'EX',
+    LOGIN_TTL_SECONDS,
+  );
+}
+
+export async function getLoginState(sessionId: string): Promise<LoginState | undefined> {
+  const raw = await connection.get(loginKeys(sessionId).state);
+  return raw ? (JSON.parse(raw) as LoginState) : undefined;
+}
+
+export async function enqueueLogin(data: LoginJobData): Promise<void> {
+  await setLoginState(data.sessionId, { status: 'starting', width: 0, height: 0 });
+  await loginQueue.add('remote-login', data, { jobId: data.sessionId });
+}
+
 export { Queue, QueueEvents };
 
 export { nextScheduledRun, assertValidSchedule } from './schedule.js';

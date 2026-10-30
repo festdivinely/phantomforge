@@ -20,8 +20,24 @@ const CHART_KINDS = ['connection_accept', 'connection_request', 'connection_with
 const CHART_DAYS = 14;
 
 export default function AccountScreen() {
-  const { id, label } = useLocalSearchParams<{ id: string; label?: string }>();
-  const { call } = useSession();
+  const { id, label, platform } = useLocalSearchParams<{ id: string; label?: string; platform?: string }>();
+  const { session, call } = useSession();
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const logInAgain = async () => {
+    setLoggingIn(true);
+    try {
+      const { id: loginId } = await call<{ id: string }>('/api/login-sessions', {
+        method: 'POST',
+        body: { organizationId: session.orgId, identityId: id },
+      });
+      router.push({ pathname: '/login/[id]', params: { id: loginId } });
+    } catch (err) {
+      Alert.alert('Could not start the login', err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoggingIn(false);
+    }
+  };
   const { data, error, refreshing, refresh, reload } = useLoader(
     () => call<AccountStats>(`/api/accounts/${id}/stats`),
     30_000,
@@ -76,6 +92,9 @@ export default function AccountScreen() {
             <View style={{ flex: 1, gap: 4 }}>
               <StatusPill status={data.identity.status} />
               {data.identity.statusReason ? <Text style={{ color: colors.warn }}>{data.identity.statusReason}</Text> : null}
+              {platform === 'linkedin' && data.identity.status !== 'active' && (
+                <Button small title="Log in again" onPress={() => void logInAgain()} busy={loggingIn} />
+              )}
             </View>
             {data.pendingPosts > 0 && (
               <Button small title={`${data.pendingPosts} post${data.pendingPosts > 1 ? 's' : ''} waiting`} onPress={() => router.navigate('/posts')} />

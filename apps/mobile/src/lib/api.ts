@@ -76,6 +76,22 @@ export async function request<T>(
   return body as T;
 }
 
+/**
+ * Loads an image the server only shows with the owner token, as a data URI
+ * (React Native's <Image> can't send our header on every refresh).
+ * Returns undefined when there is no picture yet.
+ */
+export async function fetchImageDataUri(conn: Connection, path: string): Promise<string | undefined> {
+  const res = await fetch(`${conn.url}${path}`, { headers: { Authorization: `Bearer ${conn.token}` } });
+  if (!res.ok) return undefined;
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return `data:${res.headers.get('content-type') ?? 'image/jpeg'};base64,${btoa(binary)}`;
+}
+
 function safeJson(text: string): unknown {
   try {
     return JSON.parse(text);

@@ -136,6 +136,27 @@ phantomforge/
 
 *(Newest entries at the top. Each session adds to this rather than replacing it.)*
 
+**2026-10-29 — Remote login: connect a real LinkedIn account from the phone.**
+In the app, **Add a LinkedIn account** opens LinkedIn's real login page in a
+browser on the server (this PC), and the phone shows it live. You tap the
+picture to pick a field and type on the phone; the server types it into the
+page. You also handle any code or check LinkedIn asks for. When LinkedIn
+opens your feed, the server saves the login, encrypted, and closes the
+window. Your password goes straight to LinkedIn and is never saved or
+written to any log. **Log in again** does the same for an account that was
+logged out.
+
+LinkedIn now always runs in the **installed Google Chrome** (with its own
+separate profile, not your personal one), in a normal visible window, for
+the login and for every later job. LinkedIn therefore sees one ordinary,
+consistent browser. Found along the way: Playwright's own copy of Chromium on
+this PC is damaged (it can't start), which is one more reason to use the real
+Chrome. Tested on LinkedIn's real login page without logging in: the live
+picture, tapping, typing, deleting and cancelling all work.
+
+Decided: connection requests are sent **without a note** unless LinkedIn
+requires one.
+
 **2026-10-29 — Full safety audit before the first real account.**
 Every part that can touch a LinkedIn account was reviewed and 11 problems
 were fixed (details: `docs/audits/2026-10-29-pre-real-account.md`). The most

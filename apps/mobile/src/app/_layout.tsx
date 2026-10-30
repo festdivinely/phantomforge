@@ -19,6 +19,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="account/[id]" options={{ title: 'Account' }} />
         <Stack.Screen name="profile/[id]" options={{ title: 'Posting profile' }} />
+        <Stack.Screen name="login/[id]" options={{ title: 'Log in to LinkedIn', gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Screen name="connect" options={{ title: 'Connect to PhantomForge' }} />
       <Stack.Screen name="scan" options={{ title: 'Scan pairing QR' }} />

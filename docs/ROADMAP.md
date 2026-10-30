@@ -185,10 +185,15 @@ The owner runs everything from a phone; the backend runs on a server.
 - [ ] Polish the phone app with the owner (look, feel, details) - **the owner
       asked to be reminded of this before any APK build**
 - [ ] Standalone APK (EAS build) so the app runs without Expo Go and the PC
-- [ ] Remote login: the phone shows the server's browser live; the owner
-      types email / password / codes and solves any CAPTCHA by hand, so the
-      session is created from the server's own location. Passwords are never
-      stored.
+- [x] Remote login (built 2026-10-29; full sign-in not yet done with a real
+      account): phone app "Add a LinkedIn account" / "Log in again" opens
+      LinkedIn's login page in the worker's browser (installed Chrome with a
+      separate profile, visible window, `LINKEDIN_BROWSER=chrome`); the phone
+      shows it live (JPEG frames via Redis) and sends taps, typing and keys;
+      the owner types email / password / codes and solves any check by hand.
+      On reaching the feed, cookies + user agent are encrypted into the
+      identity. Passwords are never stored or logged. Verified: live page,
+      tap, typing, delete, cancel, validation, auth on every route.
 
 ---
 

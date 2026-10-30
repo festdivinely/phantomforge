@@ -77,7 +77,14 @@ is not retryable; `captureArtifact` really uploads via `@pf/storage`.
 Targeting for `linkedin.send-connection` (owner, 2026-10-29): people who want
 to connect (open to connect, #opentoconnect, LION, active networkers); exclude
 CEOs, founders, senior executives and tech professionals for now; handle the
-"Add a note" dialog. The owner accepts the ToS risk of browser automation on
+"Add a note" dialog by choosing **Send without a note** (owner: only write a
+note if LinkedIn makes it required). Remote login (2026-10-29):
+`apps/worker/src/remote-login.ts` + `apps/api/src/routes/login.ts`, protocol in
+`@pf/queue` (`loginKeys`, `LoginInput`, `LoginState`); never log input text.
+Real-platform browsers come from `apps/worker/src/browsers.ts`
+(`LINKEDIN_BROWSER=chrome` installed Chrome, separate profile, headed by
+default); Playwright's bundled chromium-1234 on this PC is broken ("side-by-side
+configuration"), only the headless shell works. The owner accepts the ToS risk of browser automation on
 his own account; no stealth tooling (fingerprint spoofing, CAPTCHA solving,
 proxies, fake accounts) - human-like pacing and limits only.
 

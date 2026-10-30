@@ -84,6 +84,18 @@ const envSchema = z.object({
   PLAYWRIGHT_HEADLESS: booleanish.default(true),
   RUN_TIMEOUT_MS: z.coerce.number().int().positive().default(900_000),
 
+  /**
+   * Real-platform accounts (LinkedIn) run in a normal, visible browser window
+   * by default, so the platform sees an ordinary browser; the login and every
+   * later run use the same one. The fake platform always runs headless.
+   */
+  LINKEDIN_HEADLESS: booleanish.default(false),
+  /**
+   * Which browser LinkedIn runs in: an installed Google Chrome ("chrome") or
+   * Microsoft Edge ("msedge") - an ordinary browser, with its own separate
+   * profile, never the owner's personal one - or Playwright's bundled Chromium.
+   */
+  LINKEDIN_BROWSER: z.enum(['chrome', 'msedge', 'chromium']).default('chrome'),
   QUOTA_CONNECTIONS_PER_DAY: z.coerce.number().int().nonnegative().default(20),
   /** Rolling 7-day cap on connection requests; LinkedIn's own weekly cap is ~100. */
   QUOTA_CONNECTIONS_PER_WEEK: z.coerce.number().int().nonnegative().default(80),
