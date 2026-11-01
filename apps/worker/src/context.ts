@@ -111,6 +111,14 @@ export function createAgentContext(params: {
       });
     },
 
+    async alreadyActedOn(targetUrl: string, kinds: QuotaAction[]) {
+      const found = await prisma.activity.findFirst({
+        where: { identityId, targetUrl, kind: { in: kinds }, succeeded: true },
+        select: { id: true },
+      });
+      return found !== null;
+    },
+
     async captureArtifact(kind: RunArtifact['kind'], note?: string): Promise<RunArtifact> {
       const format =
         kind === 'screenshot'

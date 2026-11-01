@@ -51,6 +51,13 @@ export interface AgentContext {
    */
   recordActivity(activity: ActivityRecord): Promise<void>;
 
+  /**
+   * Whether this identity already did one of `kinds` to the person at
+   * `targetUrl` (successfully) - e.g. never invite someone who was invited or
+   * withdrawn before.
+   */
+  alreadyActedOn(targetUrl: string, kinds: QuotaAction[]): Promise<boolean>;
+
   /** Capture a screenshot / DOM snapshot into object storage. */
   captureArtifact(kind: RunArtifact['kind'], note?: string): Promise<RunArtifact>;
 

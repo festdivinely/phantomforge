@@ -34,6 +34,27 @@ export const sendInviteButton = selector('send-invite-button', [
   byCss('aria-label-send', 'button[aria-label*="Send" i]'),
 ]);
 
+/**
+ * The owner's rule: send without a note unless LinkedIn insists on one.
+ * Not yet seen on the real site (nothing was clicked in the study) - the
+ * first real send captures the dialog so these get confirmed.
+ */
+export const sendWithoutNoteButton = selector('send-without-note-button', [
+  byRole('aria-send-without-note', 'button', { name: /send without a note/i }),
+  byCss('aria-label-send-without-note', 'button[aria-label*="without a note" i]'),
+]);
+
+/** LinkedIn sometimes asks for the person's email to prove you know them. */
+export const inviteEmailField = selector('invite-email-field', [
+  byRole('role-email', 'textbox', { name: /email/i }),
+  byCss('type-email', 'input[type="email"], input[name*="email" i]'),
+]);
+
+export const dialogDismissButton = selector('dialog-dismiss-button', [
+  byRole('aria-dismiss', 'button', { name: /^(dismiss|close|cancel)\b/i }),
+  byCss('aria-label-dismiss', 'button[aria-label*="Dismiss" i], button[aria-label*="Close" i]'),
+]);
+
 // On the invitation manager the accessible name is the full aria-label -
 // seen on the real site as "Accept invitation for <name>" - so match the
 // start, not the whole name.

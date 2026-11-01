@@ -114,7 +114,16 @@ Send to the people most likely to accept, staying under LinkedIn's limits.
       1. people who liked or commented on our posts
       2. 2nd-degree connections in chosen locations (e.g. Nigeria) and
          industries, preferring profiles with fewer connections (they accept more)
-- [ ] `linkedin.send-connection` (replaces the stub), optional short note
+- [x] `linkedin.send-connection` v2 (2026-11-01), built against the real pages:
+      people search (one of the open-to-connect searches per run), skims like a
+      reader, skips executives / tech professionals / company pages / Follow-only
+      / anyone invited or withdrawn before, sometimes reads the profile first,
+      sends **without a note** (skips people where LinkedIn demands a note or
+      their email), confirms the card turns Pending, records it, stops on any
+      warning or unknown dialog (screenshots + page map). `dryRun` clicks
+      nothing. Verified: 7 scenarios on a local copy of the real page; practice
+      run on the real account (20 people read, 9 would-invite, 11 skipped with
+      reasons). **First real send not done yet.**
 - [ ] Track the acceptance rate per target source; pause sending if it drops
       (many ignored or "I don't know this person" invitations lead to restrictions)
 
