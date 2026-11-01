@@ -214,6 +214,30 @@ The owner runs everything from a phone; the backend runs on a server.
 
 ---
 
+## For other users (hosted app) - account health and Claude in the app
+
+Today the developer (with Claude Code) reviews each account by hand. A hosted
+app needs that built in (owner's idea, 2026-11-01):
+
+- [ ] **Account health check** on connecting an account: read-only study of
+      the user's own profile, then Claude checks photo, headline, About,
+      location vs where the account is used, risky job claims, connection
+      count. Plain-words findings in the app; sending stays locked while the
+      profile is risky.
+- [ ] **Profile fixes the user approves**: the app asks a few true facts,
+      Claude drafts headline / About / job entry, the user edits and
+      approves, then a `linkedin.update-profile` agent applies it (study the
+      edit screens first). Never invent facts; nothing changes unapproved.
+- [ ] **"Ask Claude" chat** in the app, answering from the user's own data
+      (runs, warnings, health check).
+- [ ] Acceptance-rate guard: pause sending when too few requests are
+      accepted (also listed in Phase 5).
+- [ ] Customer-facing Claude features run on the paid Claude API (a few
+      cents per check / answer, priced into the plan). The owner's Claude
+      subscription is for the owner's own use only.
+
+---
+
 ## Phase 8 — Extras
 
 - [ ] Short welcome message to new connections (owner-approved template)
