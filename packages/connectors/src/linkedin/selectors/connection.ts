@@ -9,11 +9,14 @@ import { byCss, byRole, byTestId, selector } from '../../base/selector.js';
  * early warning that LinkedIn shipped a redesign - fix it before runs fail.
  */
 
+// Seen on the real site (study run 2026-11-01): Connect is labelled
+// "Invite <name> to connect" - a link on search results and profiles, a
+// button on My Network. Never just "Connect".
 export const connectButton = selector('connect-button', [
-  byRole('aria-connect', 'button', { name: /^connect$/i }),
+  byRole('link-invite-to-connect', 'link', { name: /^invite .+ to connect$/i }),
+  byRole('button-invite-to-connect', 'button', { name: /^invite .+ to connect$/i }),
+  byCss('aria-label-invite-connect', '[aria-label^="Invite" i][aria-label$="to connect" i]'),
   byTestId('data-testid-connect', 'connect-button'),
-  byCss('aria-label-connect', 'button[aria-label*="Invite" i][aria-label*="connect" i]'),
-  byCss('class-fallback', '.pvs-profile-actions button:has-text("Connect")'),
 ]);
 
 export const addNoteButton = selector('add-note-button', [
@@ -31,8 +34,9 @@ export const sendInviteButton = selector('send-invite-button', [
   byCss('aria-label-send', 'button[aria-label*="Send" i]'),
 ]);
 
-// On the invitation manager the accessible name is the full aria-label,
-// e.g. "Accept Jane Doe's invitation", so match the start, not the whole name.
+// On the invitation manager the accessible name is the full aria-label -
+// seen on the real site as "Accept invitation for <name>" - so match the
+// start, not the whole name.
 // Every strategy is tied to an invitation, so no fallback can ever click some
 // other "Accept" on the page (a cookie banner, a terms dialog).
 export const acceptInviteButton = selector('accept-invite-button', [
@@ -45,12 +49,14 @@ export const acceptInviteButton = selector('accept-invite-button', [
 export const noInvitationsMessage = selector('no-invitations-message', [
   {
     name: 'text-no-invitations',
-    locate: (scope) => scope.getByText(/no (pending|new)? ?invitations/i),
+    // Seen: "No sent invitations"; also covers "No pending invitations".
+    locate: (scope) => scope.getByText(/^no\b.*invitations$/i),
   },
 ]);
 
 export const ignoreInviteButton = selector('ignore-invite-button', [
-  byRole('aria-ignore', 'button', { name: /^ignore$/i }),
+  // Seen: "Ignore invitation for <name>".
+  byRole('aria-ignore', 'button', { name: /^ignore\b.*invitation/i }),
   byCss('aria-label-ignore', 'button[aria-label*="Ignore" i]'),
 ]);
 
