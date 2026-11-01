@@ -9,17 +9,26 @@ import { assertSafeToContinue, LINKEDIN_ORIGIN } from '../session.js';
  * own LinkedIn rather than guessed.
  */
 const PAGES = [
-  { name: 'feed', url: `${LINKEDIN_ORIGIN}/feed/` },
-  { name: 'received invitations', url: `${LINKEDIN_ORIGIN}/mynetwork/invitation-manager/received/` },
-  { name: 'sent invitations', url: `${LINKEDIN_ORIGIN}/mynetwork/invitation-manager/sent/` },
-  { name: 'my network suggestions', url: `${LINKEDIN_ORIGIN}/mynetwork/grow/` },
+  { key: 'feed', name: 'feed', url: `${LINKEDIN_ORIGIN}/feed/` },
+  { key: 'own-profile', name: 'own profile', url: `${LINKEDIN_ORIGIN}/in/me/` },
+  { key: 'received', name: 'received invitations', url: `${LINKEDIN_ORIGIN}/mynetwork/invitation-manager/received/` },
+  { key: 'sent', name: 'sent invitations', url: `${LINKEDIN_ORIGIN}/mynetwork/invitation-manager/sent/` },
+  { key: 'network', name: 'my network suggestions', url: `${LINKEDIN_ORIGIN}/mynetwork/grow/` },
   {
+    key: 'search',
     name: 'people search #opentoconnect',
     url: `${LINKEDIN_ORIGIN}/search/results/people/?keywords=${encodeURIComponent('#opentoconnect')}`,
   },
 ] as const;
 
+const PAGE_KEYS = ['feed', 'own-profile', 'received', 'sent', 'network', 'search'] as const;
+
 const inputSchema = z.object({
+  pages: z
+    .array(z.enum(PAGE_KEYS))
+    .min(1)
+    .optional()
+    .describe('Only these pages; all of them when left out'),
   openOneProfile: z
     .boolean()
     .default(true)
@@ -63,7 +72,8 @@ export const studyPagesAgent = defineAgent({
     const { page } = ctx;
     const studied: string[] = [];
 
-    for (const target of PAGES) {
+    const chosen = PAGES.filter((p) => !input.pages || input.pages.includes(p.key));
+    for (const target of chosen) {
       if (ctx.signal.aborted) break;
       await page.goto(target.url, { waitUntil: 'domcontentloaded' });
       await assertSafeToContinue(page);
@@ -73,7 +83,7 @@ export const studyPagesAgent = defineAgent({
     }
 
     // One stranger's profile shows where Connect / More / Follow sit.
-    if (input.openOneProfile && !ctx.signal.aborted) {
+    if (input.openOneProfile && chosen.some((p) => p.key === 'search') && !ctx.signal.aborted) {
       const href = await page
         .locator('main a[href*="/in/"]')
         .first()
