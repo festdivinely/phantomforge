@@ -243,5 +243,6 @@ pnpm db:seed            # dev org, user, mock identity, sample agent config
 pnpm dev                # web + api + worker via turbo
 pnpm tunnel             # Cloudflare quick tunnel to the API only; URL -> .tunnel-url + Telegram
 cd apps/mobile && npx expo start --offline   # phone app (npm, NOT in the pnpm workspace)
+# Never start it with CI=1: that turns off watching, so the phone silently keeps the old code.
 pnpm typecheck          # verification pass before any commit
 ```
