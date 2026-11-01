@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,13 +21,13 @@ import { useTheme } from '../../lib/theme';
 import type { LoginState } from '../../lib/types';
 
 const REFRESH_MS = 800;
-const ZOOMS = [1, 2, 3] as const;
+const ZOOMS = [1, 1.5, 2] as const;
 const ENDED: LoginState['status'][] = ['done', 'failed', 'cancelled', 'expired'];
 
 /**
- * Live view of LinkedIn's login page in the server's browser. Tap the picture
- * to click there, type in the box below, and the server types it into the
- * page. What you type is never stored or shown anywhere else.
+ * Live view of LinkedIn's login page in the server's browser. Tap a field on
+ * the picture: the keyboard opens, and what you type is typed into that field
+ * when you press Send. What you type is never stored or shown anywhere else.
  */
 export default function RemoteLoginScreen() {
   const { colors, ui } = useTheme();
@@ -42,6 +42,7 @@ export default function RemoteLoginScreen() {
   const [sending, setSending] = useState(false);
   const ended = state ? ENDED.includes(state.status) : false;
   const endedRef = useRef(false);
+  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   endedRef.current = ended;
 
   // Poll the state and the picture until the session ends.
@@ -90,8 +91,8 @@ export default function RemoteLoginScreen() {
     router.back();
   };
 
-  const pageWidth = state?.width || 1440;
-  const pageHeight = state?.height || 900;
+  const pageWidth = state?.width || 412;
+  const pageHeight = state?.height || 860;
   const shownWidth = (screenWidth - 32) * zoom;
   const shownHeight = (shownWidth * pageHeight) / pageWidth;
 
@@ -101,8 +102,8 @@ export default function RemoteLoginScreen() {
       <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
         {!ended && (
           <Text style={ui.muted}>
-            This is LinkedIn in the server's browser. Tap a field on the picture, type below, then tap Send. Do the
-            same for any code LinkedIn asks for.
+            This is LinkedIn in the server's browser. Tap a field on the picture: your keyboard opens. Type, then press
+            Send. Do the same for any code LinkedIn asks for.
           </Text>
         )}
 
@@ -136,41 +137,22 @@ export default function RemoteLoginScreen() {
                       backgroundColor: z === zoom ? colors.accent : colors.input,
                     }}
                   >
-                    <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600' }}>{z}×</Text>
+                    <Text style={{ color: z === zoom ? colors.accentText : colors.text, fontSize: 12, fontWeight: '600' }}>{z}×</Text>
                   </Pressable>
                 ))}
               </View>
             </View>
 
-            <ScrollView horizontal={zoom > 1} nestedScrollEnabled style={{ borderRadius: 8, borderWidth: 1, borderColor: colors.cardBorder }}>
-              <ScrollView nestedScrollEnabled style={{ maxHeight: zoom > 1 ? 360 : undefined }}>
-                <Pressable
-                  onPress={(e) => {
-                    const { locationX, locationY } = e.nativeEvent;
-                    void send({
-                      kind: 'tap',
-                      x: Math.round((locationX / shownWidth) * pageWidth),
-                      y: Math.round((locationY / shownHeight) * pageHeight),
-                    });
-                  }}
-                >
-                  {frame ? (
-                    <Image source={{ uri: frame }} style={{ width: shownWidth, height: shownHeight }} resizeMode="stretch" />
-                  ) : (
-                    <View style={{ width: shownWidth, height: shownHeight, alignItems: 'center', justifyContent: 'center' }}>
-                      <ActivityIndicator color={colors.accent} />
-                    </View>
-                  )}
-                </Pressable>
-              </ScrollView>
-            </ScrollView>
-
             <View style={ui.row}>
               <TextInput
+                ref={inputRef}
                 style={[ui.input, { flex: 1 }]}
                 value={text}
                 onChangeText={setText}
-                placeholder="Type here, then Send"
+                placeholder="Tap a field on the page, type, Send"
+                returnKeyType="send"
+                submitBehavior="submit"
+                onSubmitEditing={() => void typeText()}
                 placeholderTextColor={colors.muted}
                 secureTextEntry={hidden}
                 autoCapitalize="none"
@@ -198,6 +180,31 @@ export default function RemoteLoginScreen() {
               <Button small kind="secondary" title="Scroll ↑" onPress={() => void send({ kind: 'scroll', dy: -400 })} />
               <Button small kind="secondary" title="Scroll ↓" onPress={() => void send({ kind: 'scroll', dy: 400 })} />
             </View>
+            <ScrollView horizontal={zoom > 1} nestedScrollEnabled style={{ borderRadius: 8, borderWidth: 1, borderColor: colors.cardBorder }}>
+              <ScrollView nestedScrollEnabled style={{ maxHeight: zoom > 1 ? 520 : undefined }}>
+                <Pressable
+                  onPress={(e) => {
+                    const { locationX, locationY } = e.nativeEvent;
+                    void send({
+                      kind: 'tap',
+                      x: Math.round((locationX / shownWidth) * pageWidth),
+                      y: Math.round((locationY / shownHeight) * pageHeight),
+                    });
+                    // Tapping a field on the picture means "I want to type here".
+                    inputRef.current?.focus();
+                  }}
+                >
+                  {frame ? (
+                    <Image source={{ uri: frame }} style={{ width: shownWidth, height: shownHeight }} resizeMode="stretch" />
+                  ) : (
+                    <View style={{ width: shownWidth, height: shownHeight, alignItems: 'center', justifyContent: 'center' }}>
+                      <ActivityIndicator color={colors.accent} />
+                    </View>
+                  )}
+                </Pressable>
+              </ScrollView>
+            </ScrollView>
+
             <Button kind="danger" title="Cancel login" onPress={() => void cancel()} />
           </>
         )}

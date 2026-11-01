@@ -2,7 +2,6 @@ import type { Job } from 'bullmq';
 import type { BrowserContext, Page } from 'playwright';
 import { env } from '@pf/config';
 import { encryptJson } from '@pf/core';
-import { getConnector } from '@pf/connectors';
 import { prisma } from '@pf/db';
 import {
   connection,
@@ -27,7 +26,10 @@ import { notifyOwner } from './telegram.js';
  */
 
 const LOGIN_URL = 'https://www.linkedin.com/login';
-const VIEWPORT = { width: 1440, height: 900 };
+// Phone-shaped, so LinkedIn's login page fills the owner's phone screen and
+// stays readable. Only the login uses it; runs keep the laptop layout. The
+// session cookies don't depend on the window size.
+const VIEWPORT = { width: 412, height: 860 };
 const TICK_MS = 700;
 const SESSION_MS = 12 * 60_000;
 
@@ -96,9 +98,10 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
 
   try {
     const browser = await getBrowser('linkedin');
-    context = await getConnector('linkedin').createBrowserContext(browser, {
-      identityId: identityId ?? 'new-login',
-      cookies: [],
+    context = await browser.newContext({
+      viewport: VIEWPORT,
+      // Sharp text on a phone screen.
+      deviceScaleFactor: 2,
       locale: 'en-US',
       timezoneId: env.OWNER_TIMEZONE,
     });
@@ -109,6 +112,11 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
     for (;;) {
       if (await connection.get(keys.cancel)) {
         await state({ status: 'cancelled', message: 'Login cancelled.' });
+        return;
+      }
+      // Someone closed the browser window (or tab) on the server.
+      if (page.isClosed() || !browser.isConnected()) {
+        await state({ status: 'failed', message: 'The login window on the server was closed. Start again.' });
         return;
       }
       if (Date.now() > deadline) {
