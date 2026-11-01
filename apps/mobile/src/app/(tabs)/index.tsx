@@ -4,12 +4,13 @@ import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } f
 import { Button, Empty, ErrorBanner, Loading, Stat, StatusPill } from '../../components/ui';
 import { useSession } from '../../lib/connection';
 import { KIND_VERBS, timeAgo } from '../../lib/format';
-import { colors, ui } from '../../lib/theme';
+import { useTheme } from '../../lib/theme';
 import type { AccountOverview } from '../../lib/types';
 import { useLoader } from '../../lib/useLoader';
 
 /** Home: every account with today's growth numbers. */
 export default function AccountsScreen() {
+  const { colors, ui } = useTheme();
   const { session, call } = useSession();
   const { data, error, refreshing, refresh, reload } = useLoader(
     () => call<AccountOverview[]>(`/api/accounts/overview?organizationId=${session.orgId}`),
@@ -69,6 +70,7 @@ export default function AccountsScreen() {
 
 /** Starts a remote login that adds a new LinkedIn account. */
 function AddLinkedInAccount({ orgId }: { orgId: string }) {
+  const { colors, ui } = useTheme();
   const { call } = useSession();
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);

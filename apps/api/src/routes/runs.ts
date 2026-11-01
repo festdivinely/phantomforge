@@ -47,7 +47,8 @@ export async function runRoutes(app: FastifyInstance) {
       if (identity.status !== 'active') {
         return reply.code(409).send({ error: `This account is ${identity.status}; fix it before running agents.` });
       }
-    } else if (!agent.readOnly) {
+    } else if (!agent.readOnly || agent.platform !== 'mock') {
+      // Real platforms need a logged-in account even just to read a page.
       return reply.code(400).send({ error: 'This agent acts on an account; choose one.' });
     }
 

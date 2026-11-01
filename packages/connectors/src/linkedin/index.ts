@@ -3,6 +3,7 @@ import type { Connector, IdentitySession, SessionValidation } from '../base/conn
 import { createLinkedInContext, validateLinkedInSession } from './session.js';
 import { sendConnectionAgent } from './agents/send-connection.js';
 import { acceptInvitationsAgent } from './agents/accept-invitations.js';
+import { studyPagesAgent } from './agents/study-pages.js';
 
 /**
  * LinkedIn connector.
@@ -14,7 +15,7 @@ import { acceptInvitationsAgent } from './agents/accept-invitations.js';
 export const linkedinConnector: Connector = {
   platform: 'linkedin',
   name: 'LinkedIn',
-  agents: [acceptInvitationsAgent, sendConnectionAgent],
+  agents: [studyPagesAgent, acceptInvitationsAgent, sendConnectionAgent],
 
   createBrowserContext(browser: Browser, session: IdentitySession): Promise<BrowserContext> {
     return createLinkedInContext(browser, session);

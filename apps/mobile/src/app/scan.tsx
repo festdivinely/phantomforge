@@ -6,10 +6,12 @@ import { Button } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useConnection } from '../lib/connection';
 import { parsePairingCode } from '../lib/pairing';
-import { colors, ui } from '../lib/theme';
+import { makeStyles, useTheme } from '../lib/theme';
 
 /** Scans the pairing QR from the PC dashboard (Pair the phone app) and connects. */
 export default function ScanScreen() {
+  const styles = useStyles();
+  const { colors, ui } = useTheme();
   const { connect } = useConnection();
   const [permission, requestPermission] = useCameraPermissions();
   const [status, setStatus] = useState<{ busy: boolean; message?: string }>({ busy: false });
@@ -69,7 +71,7 @@ export default function ScanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   frame: {
     position: 'absolute',
     alignSelf: 'center',
@@ -85,9 +87,10 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     bottom: 32,
-    backgroundColor: 'rgba(11,15,20,0.85)',
+    backgroundColor: colors.card,
+    opacity: 0.94,
     borderRadius: 12,
     padding: 14,
     gap: 8,
   },
-});
+}));

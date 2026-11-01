@@ -17,7 +17,7 @@ import {
 import { Button } from '../../components/ui';
 import { fetchImageDataUri } from '../../lib/api';
 import { useSession } from '../../lib/connection';
-import { colors, ui } from '../../lib/theme';
+import { useTheme } from '../../lib/theme';
 import type { LoginState } from '../../lib/types';
 
 const REFRESH_MS = 800;
@@ -30,6 +30,7 @@ const ENDED: LoginState['status'][] = ['done', 'failed', 'cancelled', 'expired']
  * page. What you type is never stored or shown anywhere else.
  */
 export default function RemoteLoginScreen() {
+  const { colors, ui } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session, call } = useSession();
   const { width: screenWidth } = useWindowDimensions();

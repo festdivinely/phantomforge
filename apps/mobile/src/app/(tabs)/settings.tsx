@@ -1,12 +1,19 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Button } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 import { useConnection, useSession } from '../../lib/connection';
-import { colors, ui } from '../../lib/theme';
+import { useTheme, type ThemeMode } from '../../lib/theme';
+
+const THEME_CHOICES: { mode: ThemeMode; label: string }[] = [
+  { mode: 'system', label: 'Match phone' },
+  { mode: 'light', label: 'Light' },
+  { mode: 'dark', label: 'Dark' },
+];
 
 export default function SettingsScreen() {
+  const { colors, ui, mode, setMode } = useTheme();
   const { session, call } = useSession();
   const { disconnect } = useConnection();
   const [check, setCheck] = useState<{ ok: boolean; text: string }>();
@@ -33,6 +40,31 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={ui.screen} contentContainerStyle={ui.content}>
+      <View style={ui.card}>
+        <Text style={ui.sectionTitle}>Appearance</Text>
+        <View style={[ui.row, { flexWrap: 'wrap' }]}>
+          {THEME_CHOICES.map((choice) => {
+            const on = choice.mode === mode;
+            return (
+              <Pressable
+                key={choice.mode}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                onPress={() => setMode(choice.mode)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 99,
+                  backgroundColor: on ? colors.accent : colors.input,
+                }}
+              >
+                <Text style={{ color: on ? colors.accentText : colors.text, fontWeight: '600' }}>{choice.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={ui.muted}>"Match phone" follows your phone's light or dark setting.</Text>
+      </View>
       <View style={ui.card}>
         <Text style={ui.sectionTitle}>Server</Text>
         <Text style={ui.text} selectable>

@@ -73,6 +73,12 @@ Lowest risk, instant growth: accept every incoming invitation on a schedule.
 - [x] Fixed: a session that fails to decrypt left the Run stuck at
       "running"; the seeded mock identity held undecryptable bytes; the dev
       org id is now fixed (`dev-org`) instead of random
+- [x] `linkedin.study-pages` (2026-11-01): read-only run that opens the
+      feed, received/sent invitations, My Network suggestions, a
+      `#opentoconnect` people search and one profile, scrolls like a reader
+      and saves a screenshot + accessibility map (`aria_snapshot`, every
+      button/link label) of each. Clicks nothing. Run it first on a newly
+      connected account and check every selector against its output.
 - [ ] `selector_health` telemetry recorded on every resolve
 - [ ] Screenshot artifact captured on unexpected DOM state (the record is
       written; uploading the actual image to storage is still a TODO)
@@ -182,6 +188,8 @@ The owner runs everything from a phone; the backend runs on a server.
       approvals and new drafts. Server log: every request 200, no errors.
       Needs the Windows Firewall rule "PhantomForge dev (Expo 8081, API
       3001)" (Private profile) - Node was only allowed on Public networks.
+- [x] Light mode (2026-11-01): Settings -> Appearance: Match phone / Light /
+      Dark, saved on the phone; every screen reads colours from `useTheme()`
 - [ ] Polish the phone app with the owner (look, feel, details) - **the owner
       asked to be reminded of this before any APK build**
 - [ ] Standalone APK (EAS build) so the app runs without Expo Go and the PC

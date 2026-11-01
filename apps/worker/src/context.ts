@@ -112,14 +112,23 @@ export function createAgentContext(params: {
     },
 
     async captureArtifact(kind: RunArtifact['kind'], note?: string): Promise<RunArtifact> {
-      const isShot = kind === 'screenshot';
-      const contentType = isShot ? 'image/png' : 'text/html';
-      const key = `runs/${runId}/${kind}-${Date.now()}.${isShot ? 'png' : 'html'}`;
+      const format =
+        kind === 'screenshot'
+          ? { contentType: 'image/png', ext: 'png' }
+          : kind === 'aria_snapshot'
+            ? { contentType: 'text/yaml', ext: 'yaml' }
+            : { contentType: 'text/html', ext: 'html' };
+      const { contentType } = format;
+      const key = `runs/${runId}/${kind}-${Date.now()}.${format.ext}`;
       // A failed capture must never turn a clean stop into a crash.
       try {
-        const body = isShot
-          ? await page.screenshot({ fullPage: false, timeout: 10_000 })
-          : Buffer.from(await page.content(), 'utf8');
+        const body =
+          kind === 'screenshot'
+            ? await page.screenshot({ fullPage: false, timeout: 10_000 })
+            : kind === 'aria_snapshot'
+              ? // Every button, link and label with its role - what selectors are built from.
+                Buffer.from(await page.locator('body').ariaSnapshot({ timeout: 10_000 }), 'utf8')
+              : Buffer.from(await page.content(), 'utf8');
         await putObject(key, new Uint8Array(body), contentType);
       } catch (error) {
         console.error(`[artifact] ${runId} could not save ${kind}:`, error instanceof Error ? error.message : error);

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { Button, ErrorBanner, Loading } from '../../components/ui';
 import { useSession } from '../../lib/connection';
-import { colors, ui } from '../../lib/theme';
+import { useTheme } from '../../lib/theme';
 import type { PostingProfile } from '../../lib/types';
 import { useLoader } from '../../lib/useLoader';
 
@@ -58,6 +58,7 @@ const EMPTY: PostingProfile = { about: '', audience: '', topics: '', tone: '', a
 
 /** What Claude needs to draft posts in the owner's voice for one account. */
 export default function PostingProfileScreen() {
+  const { colors, ui } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { call } = useSession();
   const { data, error, reload } = useLoader(() => call<PostingProfile>(`/api/accounts/${id}/posting-profile`));

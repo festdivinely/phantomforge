@@ -58,7 +58,7 @@ export interface Checkpoint {
 }
 
 export interface RunArtifact {
-  kind: 'screenshot' | 'dom_snapshot' | 'har' | 'export';
+  kind: 'screenshot' | 'dom_snapshot' | 'aria_snapshot' | 'har' | 'export';
   key: string;
   contentType: string;
   capturedAt: string;

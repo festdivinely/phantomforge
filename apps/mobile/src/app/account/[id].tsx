@@ -5,7 +5,7 @@ import { BarChart } from '../../components/BarChart';
 import { Button, Empty, ErrorBanner, Loading, Stat, StatusPill } from '../../components/ui';
 import { useSession } from '../../lib/connection';
 import { dayKey, describeCron, kindLabel, timeAgo, timeUntil } from '../../lib/format';
-import { colors, ui } from '../../lib/theme';
+import { useTheme } from '../../lib/theme';
 import type { AccountStats, KindCounts } from '../../lib/types';
 import { useLoader } from '../../lib/useLoader';
 
@@ -20,6 +20,7 @@ const CHART_KINDS = ['connection_accept', 'connection_request', 'connection_with
 const CHART_DAYS = 14;
 
 export default function AccountScreen() {
+  const { colors, ui } = useTheme();
   const { id, label, platform } = useLocalSearchParams<{ id: string; label?: string; platform?: string }>();
   const { session, call } = useSession();
   const [loggingIn, setLoggingIn] = useState(false);
@@ -197,6 +198,7 @@ function Chips<K extends string>({
   value: K;
   onChange: (k: K) => void;
 }) {
+  const { colors, ui } = useTheme();
   return (
     <View style={[ui.row, { flexWrap: 'wrap' }]}>
       {options.map((o) => {

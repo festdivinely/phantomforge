@@ -4,7 +4,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, RefreshControl, Scrol
 import { Button, Empty, ErrorBanner, Loading, StatusPill } from '../../components/ui';
 import { useSession } from '../../lib/connection';
 import { dateTime, timeAgo } from '../../lib/format';
-import { colors, ui } from '../../lib/theme';
+import { useTheme } from '../../lib/theme';
 import { ApiError } from '../../lib/api';
 import type { AccountOverview, DraftJob, PostDraft } from '../../lib/types';
 import { useLoader } from '../../lib/useLoader';
@@ -13,6 +13,7 @@ const MAX_LENGTH = 3000;
 
 /** Post approvals: nothing is ever published until the owner approves it here or in Telegram. */
 export default function PostsScreen() {
+  const { colors, ui } = useTheme();
   const { session, call } = useSession();
   const org = session.orgId;
   const { data, error, refreshing, refresh, reload } = useLoader(async () => {
@@ -74,6 +75,7 @@ export default function PostsScreen() {
 }
 
 function PendingPost({ post, onDone }: { post: PostDraft; onDone: () => Promise<void> }) {
+  const { colors, ui } = useTheme();
   const { call } = useSession();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(post.text);
@@ -149,6 +151,7 @@ const POLL_MS = 3_000;
 
 /** Asks Claude for drafts, then follows the job until the drafts arrive. */
 function DraftWithClaude({ accounts, onDrafted }: { accounts: AccountOverview[]; onDrafted: () => Promise<void> }) {
+  const { colors, ui } = useTheme();
   const { call } = useSession();
   const [accountId, setAccountId] = useState<string>();
   const [count, setCount] = useState<(typeof COUNTS)[number]>(3);
@@ -235,6 +238,7 @@ function DraftWithClaude({ accounts, onDrafted }: { accounts: AccountOverview[];
 }
 
 function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -248,6 +252,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
 }
 
 function Compose({ accounts, onCreated }: { accounts: AccountOverview[]; onCreated: () => Promise<void> }) {
+  const { colors, ui } = useTheme();
   const { session, call } = useSession();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
-import { colors, ui } from '../lib/theme';
+import { useTheme } from '../lib/theme';
 
 export interface Bar {
   label: string;
@@ -12,7 +12,9 @@ export interface Bar {
  * A plain bar chart: one bar per day, the latest on the right. Tap a bar to
  * read its exact value.
  */
-export function BarChart({ bars, color = colors.accent, height = 140 }: { bars: Bar[]; color?: string; height?: number }) {
+export function BarChart({ bars, color, height = 140 }: { bars: Bar[]; color?: string; height?: number }) {
+  const { colors, ui } = useTheme();
+  const barColor = color ?? colors.accent;
   const [width, setWidth] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const max = Math.max(1, ...bars.map((b) => b.value));
@@ -42,7 +44,7 @@ export function BarChart({ bars, color = colors.accent, height = 140 }: { bars: 
                 width={barWidth}
                 height={Math.max(h, bar.value > 0 ? 2 : 0)}
                 rx={2}
-                fill={selected === i ? colors.text : color}
+                fill={selected === i ? colors.text : barColor}
                 onPress={() => setSelected(selected === i ? null : i)}
               />
             );

@@ -5,13 +5,14 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } fro
 import { Button } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useConnection } from '../lib/connection';
-import { colors, ui } from '../lib/theme';
+import { useTheme } from '../lib/theme';
 
 /**
  * First screen, and where to come back when the tunnel address changes.
  * The token is kept when only the address is updated.
  */
 export default function ConnectScreen() {
+  const { colors, ui } = useTheme();
   const { connect, saved, session } = useConnection();
   const [url, setUrl] = useState(saved?.url ?? '');
   const [token, setToken] = useState(saved?.token ?? '');

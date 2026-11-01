@@ -5,7 +5,7 @@ import { Empty, ErrorBanner, Loading } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 import { useSession } from '../../lib/connection';
 import { KIND_VERBS, timeAgo } from '../../lib/format';
-import { colors, ui } from '../../lib/theme';
+import { useTheme } from '../../lib/theme';
 import type { Activity } from '../../lib/types';
 
 const PAGE = 40;
@@ -13,6 +13,7 @@ const POLL_MS = 10_000;
 
 /** Live feed: newest first; new items appear on their own every few seconds. */
 export default function ActivityScreen() {
+  const { colors, ui } = useTheme();
   const { session, call } = useSession();
   const [items, setItems] = useState<Activity[]>();
   const [error, setError] = useState<ApiError>();
