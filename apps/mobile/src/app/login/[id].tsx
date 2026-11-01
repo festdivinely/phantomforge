@@ -41,7 +41,8 @@ export default function RemoteLoginScreen() {
   const [frame, setFrame] = useState<string>();
   const [zoom, setZoom] = useState<(typeof ZOOMS)[number]>(1);
   const [text, setText] = useState('');
-  const [hidden, setHidden] = useState(true);
+  // Shown by default so the owner can check before sending; they can hide it for the password.
+  const [hidden, setHidden] = useState(false);
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
   /** Where the last tap landed, shown at once so a tap never feels ignored. */
