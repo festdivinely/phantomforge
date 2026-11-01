@@ -43,6 +43,7 @@ export default function RemoteLoginScreen() {
   const ended = state ? ENDED.includes(state.status) : false;
   const endedRef = useRef(false);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const [typing, setTyping] = useState(false);
   endedRef.current = ended;
 
   // Poll the state and the picture until the session ends.
@@ -99,7 +100,7 @@ export default function RemoteLoginScreen() {
   return (
     <KeyboardAvoidingView style={ui.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ title: 'Log in to LinkedIn', headerBackVisible: ended }} />
-      <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="always">
         {!ended && (
           <Text style={ui.muted}>
             This is LinkedIn in the server's browser. Tap a field on the picture: your keyboard opens. Type, then press
@@ -146,7 +147,9 @@ export default function RemoteLoginScreen() {
             <View style={ui.row}>
               <TextInput
                 ref={inputRef}
-                style={[ui.input, { flex: 1 }]}
+                style={[ui.input, { flex: 1 }, typing && { borderColor: colors.accent, borderWidth: 2 }]}
+                onFocus={() => setTyping(true)}
+                onBlur={() => setTyping(false)}
                 value={text}
                 onChangeText={setText}
                 placeholder="Tap a field on the page, type, Send"
@@ -180,8 +183,12 @@ export default function RemoteLoginScreen() {
               <Button small kind="secondary" title="Scroll ↑" onPress={() => void send({ kind: 'scroll', dy: -400 })} />
               <Button small kind="secondary" title="Scroll ↓" onPress={() => void send({ kind: 'scroll', dy: 400 })} />
             </View>
-            <ScrollView horizontal={zoom > 1} nestedScrollEnabled style={{ borderRadius: 8, borderWidth: 1, borderColor: colors.cardBorder }}>
-              <ScrollView nestedScrollEnabled style={{ maxHeight: zoom > 1 ? 520 : undefined }}>
+            <ScrollView
+              horizontal={zoom > 1}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="always"
+              style={{ borderRadius: 8, borderWidth: 1, borderColor: colors.cardBorder }}>
+              <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="always" style={{ maxHeight: zoom > 1 ? 520 : undefined }}>
                 <Pressable
                   onPress={(e) => {
                     const { locationX, locationY } = e.nativeEvent;
@@ -190,8 +197,10 @@ export default function RemoteLoginScreen() {
                       x: Math.round((locationX / shownWidth) * pageWidth),
                       y: Math.round((locationY / shownHeight) * pageHeight),
                     });
-                    // Tapping a field on the picture means "I want to type here".
-                    inputRef.current?.focus();
+                    // Tapping a field on the picture means "I want to type here". Focus
+                    // just after the touch ends: Android drops a focus made during it.
+                    setTyping(true);
+                    setTimeout(() => inputRef.current?.focus(), 120);
                   }}
                 >
                   {frame ? (

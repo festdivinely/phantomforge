@@ -106,6 +106,23 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
       timezoneId: env.OWNER_TIMEZONE,
     });
     page = await context.newPage();
+
+    // Live picture: Chrome streams a frame whenever the page changes. Taking
+    // a screenshot every tick instead made the visible window resize and
+    // flash each time.
+    let latestFrame: Buffer | null = null;
+    const cdp = await context.newCDPSession(page);
+    cdp.on('Page.screencastFrame', ({ data, sessionId: frameId }) => {
+      latestFrame = Buffer.from(data, 'base64');
+      void cdp.send('Page.screencastFrameAck', { sessionId: frameId }).catch(() => undefined);
+    });
+    await cdp.send('Page.startScreencast', {
+      format: 'jpeg',
+      quality: 60,
+      maxWidth: VIEWPORT.width * 2,
+      maxHeight: VIEWPORT.height * 2,
+    });
+
     await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' });
     await state({ status: 'live', page: pageAddress(page) });
 
@@ -130,8 +147,7 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
 
       if (loggedIn(page)) break;
 
-      const frame = await page.screenshot({ type: 'jpeg', quality: 55, timeout: 5_000 }).catch(() => null);
-      if (frame) await connection.set(keys.frame, frame, 'EX', LOGIN_TTL_SECONDS);
+      if (latestFrame) await connection.set(keys.frame, latestFrame, 'EX', LOGIN_TTL_SECONDS);
       await state({ status: 'live', page: pageAddress(page) });
       await sleep(TICK_MS);
     }

@@ -20,7 +20,12 @@ export async function getBrowser(platform: Platform): Promise<Browser> {
   const key = `${channel ?? 'chromium'}:${headless}`;
   const existing = browsers.get(key);
   if (existing?.isConnected()) return existing;
-  const browser = await chromium.launch({ headless, channel });
+  // Keep drawing the page when the window is minimised or covered, so the
+  // live login picture and runs don't freeze in a background window.
+  const args = real
+    ? ['--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']
+    : [];
+  const browser = await chromium.launch({ headless, channel, args });
   browsers.set(key, browser);
   return browser;
 }
