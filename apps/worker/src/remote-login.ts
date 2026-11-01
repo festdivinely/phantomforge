@@ -63,7 +63,29 @@ async function apply(page: Page, input: LoginInput): Promise<void> {
     case 'scroll':
       await page.mouse.wheel(0, Math.max(-2000, Math.min(2000, input.dy)));
       break;
+    case 'clear':
+      await page.keyboard.press('ControlOrMeta+A');
+      await page.keyboard.press('Backspace');
+      break;
   }
+}
+
+/**
+ * The name of the box that has the cursor - its label, never what is typed
+ * in it - so the phone can say "Typing into: Password". Empty when no box
+ * is focused.
+ */
+async function focusedBox(page: Page): Promise<string> {
+  return page
+    .evaluate(() => {
+      const el = document.activeElement;
+      if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return '';
+      const labelFor = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent : null;
+      const name =
+        el.getAttribute('aria-label') || labelFor || el.closest('label')?.textContent || el.placeholder || el.name || 'a box';
+      return name.replace(/\s+/g, ' ').trim().slice(0, 60);
+    })
+    .catch(() => '');
 }
 
 /** Where the page is, without query strings (they can carry tokens). */
@@ -141,6 +163,7 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
     let lastPage = '';
     let lastBeat = -1;
     let lastBeatAt = 0;
+    let lastFocus = '';
 
     for (;;) {
       if (await connection.get(keys.cancel)) {
@@ -166,13 +189,20 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
       // Only a changed picture is stored and announced; the phone fetches a
       // picture only when frameSeq moves, so nothing unchanged crosses the tunnel.
       const address = pageAddress(page);
+      const focus = await focusedBox(page);
       if (frameIsNew && latestFrame) {
         frameIsNew = false;
         frameSeq += 1;
         await connection.set(keys.frame, latestFrame, 'EX', LOGIN_TTL_SECONDS);
       }
-      if (frameSeq !== lastBeat || address !== lastPage || Date.now() - lastBeatAt > HEARTBEAT_MS) {
-        await state({ status: 'live', page: address, frameSeq });
+      if (
+        frameSeq !== lastBeat ||
+        address !== lastPage ||
+        focus !== lastFocus ||
+        Date.now() - lastBeatAt > HEARTBEAT_MS
+      ) {
+        await state({ status: 'live', page: address, frameSeq, focus });
+        lastFocus = focus;
         lastBeat = frameSeq;
         lastPage = address;
         lastBeatAt = Date.now();

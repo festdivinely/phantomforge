@@ -1,5 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "dist", "rootDir": "src", "module": "ESNext" },
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "ESNext",
+    // Code passed to page.evaluate() runs in the browser.
+    "lib": ["ES2023", "DOM"]
+  },
   "include": ["src/**/*"]
 }

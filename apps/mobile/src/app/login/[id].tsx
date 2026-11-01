@@ -267,6 +267,18 @@ export default function RemoteLoginScreen() {
             gap: 6,
           }}
         >
+          {/* Which box on the page gets the text - so it never lands in the wrong one. */}
+          <View style={[ui.row, { justifyContent: 'space-between' }]}>
+            <Text
+              style={[ui.text, { flex: 1, fontWeight: '600', color: state?.focus ? colors.text : colors.warn }]}
+              numberOfLines={1}
+            >
+              {state?.focus ? `Typing into: ${state.focus}` : 'No box selected - tap one on the page'}
+            </Text>
+            {state?.focus ? (
+              <Button small kind="secondary" title="Clear box" onPress={() => void send({ kind: 'clear' })} />
+            ) : null}
+          </View>
           <View style={ui.row}>
             <TextInput
               ref={inputRef}
@@ -275,7 +287,7 @@ export default function RemoteLoginScreen() {
               onChangeText={setText}
               onFocus={() => setTyping(true)}
               onBlur={() => setTyping(false)}
-              placeholder="Type for the box you tapped"
+              placeholder={state?.focus ? `Type for ${state.focus}` : 'Tap a box on the page first'}
               placeholderTextColor={colors.muted}
               returnKeyType="send"
               submitBehavior="submit"

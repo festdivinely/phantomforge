@@ -17,6 +17,7 @@ const inputSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('text'), text: z.string().min(1).max(200) }),
   z.object({ kind: z.literal('key'), key: z.enum(['Enter', 'Tab', 'Backspace', 'Escape']) }),
   z.object({ kind: z.literal('scroll'), dy: z.number().min(-2000).max(2000) }),
+  z.object({ kind: z.literal('clear') }),
 ]);
 
 const idParam = z.object({ id: z.string().uuid() });

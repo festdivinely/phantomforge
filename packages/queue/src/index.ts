@@ -121,7 +121,9 @@ export type LoginInput =
   | { kind: 'tap'; x: number; y: number }
   | { kind: 'text'; text: string }
   | { kind: 'key'; key: 'Enter' | 'Tab' | 'Backspace' | 'Escape' }
-  | { kind: 'scroll'; dy: number };
+  | { kind: 'scroll'; dy: number }
+  /** Empty the box being typed into. */
+  | { kind: 'clear' };
 
 export interface LoginState {
   status: 'starting' | 'live' | 'saving' | 'done' | 'failed' | 'cancelled' | 'expired';
@@ -130,6 +132,8 @@ export interface LoginState {
   page?: string;
   /** Goes up by one each time the live picture changes. */
   frameSeq?: number;
+  /** Name of the box that has the cursor (e.g. "Password"), never its contents. */
+  focus?: string;
   identityId?: string;
   /** Size of the live picture in page pixels, for mapping taps. */
   width: number;

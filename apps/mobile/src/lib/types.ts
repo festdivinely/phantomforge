@@ -111,6 +111,8 @@ export interface LoginState {
   page?: string;
   /** Goes up by one each time the live picture changes. */
   frameSeq?: number;
+  /** Name of the box that has the cursor (e.g. "Password"), never its contents. */
+  focus?: string;
   identityId?: string;
   width: number;
   height: number;
