@@ -109,6 +109,8 @@ export interface LoginState {
   status: 'starting' | 'live' | 'saving' | 'done' | 'failed' | 'cancelled' | 'expired';
   message?: string;
   page?: string;
+  /** Goes up by one each time the live picture changes. */
+  frameSeq?: number;
   identityId?: string;
   width: number;
   height: number;

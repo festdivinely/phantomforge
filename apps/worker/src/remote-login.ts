@@ -30,7 +30,10 @@ const LOGIN_URL = 'https://www.linkedin.com/login';
 // stays readable. Only the login uses it; runs keep the laptop layout. The
 // session cookies don't depend on the window size.
 const VIEWPORT = { width: 412, height: 860 };
-const TICK_MS = 700;
+// Short, so a tap or key from the phone reaches the page almost at once.
+const TICK_MS = 150;
+/** Even with no new picture, refresh the state this often so the phone knows the session is alive. */
+const HEARTBEAT_MS = 2_000;
 const SESSION_MS = 12 * 60_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -85,6 +88,13 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
   const state = (s: Omit<LoginState, 'updatedAt' | 'width' | 'height'>) =>
     setLoginState(sessionId, { ...s, ...VIEWPORT });
 
+  // Replaced by a newer login while it waited: don't open a window at all.
+  if (await connection.get(keys.cancel)) {
+    await state({ status: 'cancelled', message: 'Replaced by a newer login.' });
+    await connection.del(keys.cancel);
+    return;
+  }
+
   // Logging an existing account in again: nothing else may use it meanwhile.
   const release = identityId ? await lockIdentity(identityId, `login-${sessionId}`, SESSION_MS + 60_000) : null;
   if (identityId && !release) {
@@ -111,9 +121,12 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
     // a screenshot every tick instead made the visible window resize and
     // flash each time.
     let latestFrame: Buffer | null = null;
+    let frameIsNew = false;
+    let frameSeq = 0;
     const cdp = await context.newCDPSession(page);
     cdp.on('Page.screencastFrame', ({ data, sessionId: frameId }) => {
       latestFrame = Buffer.from(data, 'base64');
+      frameIsNew = true;
       void cdp.send('Page.screencastFrameAck', { sessionId: frameId }).catch(() => undefined);
     });
     await cdp.send('Page.startScreencast', {
@@ -125,6 +138,9 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
 
     await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' });
     await state({ status: 'live', page: pageAddress(page) });
+    let lastPage = '';
+    let lastBeat = -1;
+    let lastBeatAt = 0;
 
     for (;;) {
       if (await connection.get(keys.cancel)) {
@@ -147,8 +163,20 @@ export async function executeRemoteLogin(job: Job<LoginJobData>): Promise<void> 
 
       if (loggedIn(page)) break;
 
-      if (latestFrame) await connection.set(keys.frame, latestFrame, 'EX', LOGIN_TTL_SECONDS);
-      await state({ status: 'live', page: pageAddress(page) });
+      // Only a changed picture is stored and announced; the phone fetches a
+      // picture only when frameSeq moves, so nothing unchanged crosses the tunnel.
+      const address = pageAddress(page);
+      if (frameIsNew && latestFrame) {
+        frameIsNew = false;
+        frameSeq += 1;
+        await connection.set(keys.frame, latestFrame, 'EX', LOGIN_TTL_SECONDS);
+      }
+      if (frameSeq !== lastBeat || address !== lastPage || Date.now() - lastBeatAt > HEARTBEAT_MS) {
+        await state({ status: 'live', page: address, frameSeq });
+        lastBeat = frameSeq;
+        lastPage = address;
+        lastBeatAt = Date.now();
+      }
       await sleep(TICK_MS);
     }
 

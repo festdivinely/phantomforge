@@ -128,6 +128,8 @@ export interface LoginState {
   message?: string;
   /** Page address without its query string. */
   page?: string;
+  /** Goes up by one each time the live picture changes. */
+  frameSeq?: number;
   identityId?: string;
   /** Size of the live picture in page pixels, for mapping taps. */
   width: number;
@@ -164,7 +166,16 @@ export async function getLoginState(sessionId: string): Promise<LoginState | und
   return raw ? (JSON.parse(raw) as LoginState) : undefined;
 }
 
+/**
+ * Starts a login. Logins run one at a time, so any older one still open (the
+ * phone app was reloaded, or left without cancelling) is cancelled first;
+ * otherwise the new one would wait behind it until it timed out.
+ */
 export async function enqueueLogin(data: LoginJobData): Promise<void> {
+  const older = await loginQueue.getJobs(['active', 'waiting', 'prioritized', 'delayed']);
+  for (const job of older) {
+    if (job.id) await connection.set(loginKeys(job.id).cancel, '1', 'EX', LOGIN_TTL_SECONDS);
+  }
   await setLoginState(data.sessionId, { status: 'starting', width: 0, height: 0 });
   await loginQueue.add('remote-login', data, { jobId: data.sessionId });
 }
