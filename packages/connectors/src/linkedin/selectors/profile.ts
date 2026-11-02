@@ -39,3 +39,13 @@ export const saveButton = selector('save-button', [
   byRole('button-save', 'button', { name: /^save$/i }),
   byCss('text-save', 'button:has-text("Save")'),
 ]);
+
+/**
+ * Seen: textbox "Industry" in the intro form - required to save the form,
+ * though not shown on the profile. It is a pick-from-list box: typing shows
+ * suggestions and one must be chosen.
+ */
+export const industryBox = selector('industry-box', [
+  byRole('textbox-industry', 'textbox', { name: /^industry\b/i }),
+  byCss('aria-label-industry', 'input[aria-label*="Industry" i], input[id*="industry" i]'),
+]);
