@@ -19,9 +19,24 @@ const PAGES = [
     name: 'people search #opentoconnect',
     url: `${LINKEDIN_ORIGIN}/search/results/people/?keywords=${encodeURIComponent('#opentoconnect')}`,
   },
+  // Who can follow / see the account (where Follow vs Connect is chosen).
+  { key: 'visibility', name: 'visibility settings', url: `${LINKEDIN_ORIGIN}/mypreferences/d/categories/profile-visibility/` },
+  { key: 'followers', name: 'followers setting', url: `${LINKEDIN_ORIGIN}/mypreferences/m/settings/followed/` },
+  { key: 'invitations-setting', name: 'who can invite setting', url: `${LINKEDIN_ORIGIN}/mypreferences/m/settings/receive-invitations/` },
+  // The owner's own edit forms, opened only to read them - nothing is typed or saved.
+  { key: 'edit-intro', name: 'edit intro form', url: (own: string) => `${own}edit/intro/` },
+  // The About form only opens from a link on the profile, like a person clicking it.
+  { key: 'edit-about', name: 'edit about form', url: (own: string) => own, open: 'main a[href*="/edit/forms/summary/"]' },
+  { key: 'experience', name: 'experience list', url: (own: string) => `${own}details/experience/` },
+  {
+    key: 'edit-experience',
+    name: 'edit job form',
+    url: (own: string) => `${own}details/experience/`,
+    open: 'main a[href*="/details/experience/edit/forms/"]',
+  },
 ] as const;
 
-const PAGE_KEYS = ['feed', 'own-profile', 'received', 'sent', 'network', 'search'] as const;
+const PAGE_KEYS = ['feed', 'own-profile', 'received', 'sent', 'network', 'search', 'edit-intro', 'edit-about', 'experience', 'edit-experience', 'visibility', 'followers', 'invitations-setting'] as const;
 
 const inputSchema = z.object({
   pages: z
@@ -73,10 +88,39 @@ export const studyPagesAgent = defineAgent({
     const studied: string[] = [];
 
     const chosen = PAGES.filter((p) => !input.pages || input.pages.includes(p.key));
+    let own: string | undefined;
     for (const target of chosen) {
       if (ctx.signal.aborted) break;
-      await page.goto(target.url, { waitUntil: 'domcontentloaded' });
+      let url: string;
+      if (typeof target.url === 'string') url = target.url;
+      else {
+        // /in/me/ redirects to the owner's real profile address.
+        if (!own) {
+          await page.goto(`${LINKEDIN_ORIGIN}/in/me/`, { waitUntil: 'domcontentloaded' });
+          await assertSafeToContinue(page);
+          own = `${LINKEDIN_ORIGIN}${/^\/in\/[^/]+\//.exec(new URL(page.url()).pathname)?.[0] ?? '/in/me/'}`;
+        }
+        url = target.url(own);
+      }
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
       await assertSafeToContinue(page);
+      if (typeof target.url !== 'string') {
+        await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+        if ('open' in target) {
+          const link = page.locator(target.open).first();
+          await link.scrollIntoViewIfNeeded({ timeout: 10_000 });
+          await link.hover();
+          await page.waitForTimeout(500 + Math.random() * 700);
+          await link.click();
+          await page.getByRole('dialog').first().waitFor({ timeout: 15_000 }).catch(() => undefined);
+          await page.waitForTimeout(1500);
+        }
+        // Forms open as a dialog: read it top and bottom.
+        await page.mouse.move(720, 450);
+        await ctx.captureArtifact('screenshot', `${target.name} (top)`);
+        await page.mouse.wheel(0, 1500);
+        await page.waitForTimeout(1200);
+      }
       await study(ctx, target.name);
       studied.push(target.name);
       await ctx.pace();
