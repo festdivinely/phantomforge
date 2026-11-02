@@ -39,6 +39,14 @@ const inputSchema = z.object({
     .default(0.3)
     .describe('How often to open a profile and read it before inviting, like a person would'),
   dryRun: z.boolean().default(false).describe('Click nothing; only list who would be invited and who was skipped'),
+  only: z
+    .array(z.string().url())
+    .min(1)
+    .max(25)
+    .optional()
+    .describe(
+      'Owner-approved people (profile addresses from a practice run). Only these are invited, found again through the same search; the rules still apply.',
+    ),
 });
 
 const CONNECT_NAME = /^invite (.+) to connect$/i;
@@ -257,13 +265,21 @@ export const sendConnectionAgent = defineAgent({
   async execute(ctx, input) {
     const { page } = ctx;
     const search = input.search?.trim() || DEFAULT_SEARCHES[Math.floor(Math.random() * DEFAULT_SEARCHES.length)]!;
-    ctx.log('info', `${input.dryRun ? 'Practice run (no clicks)' : 'Sending'} - search: "${search}"`);
+    // An approved list is only sent with the search it came from.
+    const approved = input.only ? new Set(input.only.map((u) => normaliseProfileUrl(u) ?? u)) : null;
+    const max = approved ? Math.min(input.max, approved.size) : input.max;
+    ctx.log(
+      'info',
+      `${input.dryRun ? 'Practice run (no clicks)' : approved ? `Sending to ${approved.size} approved people` : 'Sending'} - search: "${search}"`,
+    );
 
     let sent = 0;
     let failed = 0;
     let dialogCaptured = false;
+    /** Why the run stopped early, for approved people it never got to. */
+    let stoppedBecause: string | null = null;
     const skipped: Array<{ name: string; reason: string }> = [];
-    const results: Array<{ name: string; headline: string; profileUrl: string; status: string }> = [];
+    const results: Array<{ name: string; headline: string; location?: string; profileUrl: string; status: string; search?: string }> = [];
     // Everyone looked at, so the owner can check the choices: invited first, then skipped with the reason.
     const outcome = () => ({
       processed: sent,
@@ -272,6 +288,8 @@ export const sendConnectionAgent = defineAgent({
       results: [
         ...results,
         ...skipped.map((s) => ({ name: s.name, headline: '', profileUrl: '', status: `skipped: ${s.reason}` })),
+        // Approved people this run never reached (search results change).
+        ...[...(approved ?? [])].map((profileUrl) => ({ name: '', headline: '', profileUrl, status: stoppedBecause ? `not sent: ${stoppedBecause}` : 'not found in the search this time' })),
       ],
     });
 
@@ -280,7 +298,7 @@ export const sendConnectionAgent = defineAgent({
       await noteAcceptances(ctx);
       await ctx.pace();
 
-      for (let pageNo = 1; pageNo <= input.maxPages && sent < input.max; pageNo += 1) {
+      for (let pageNo = 1; pageNo <= input.maxPages && sent < max && approved?.size !== 0; pageNo += 1) {
         if (ctx.signal.aborted) break;
         const url = `${LINKEDIN_ORIGIN}/search/results/people/?keywords=${encodeURIComponent(search)}&origin=GLOBAL_SEARCH_HEADER${pageNo > 1 ? `&page=${pageNo}` : ''}`;
         await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -300,7 +318,10 @@ export const sendConnectionAgent = defineAgent({
         if (people.length === 0) break;
 
         for (const person of people) {
-          if (sent >= input.max || ctx.signal.aborted) break;
+          if (sent >= max || ctx.signal.aborted || approved?.size === 0) break;
+          // With an approved list, everyone else on the page is passed over.
+          if (approved && !approved.has(person.profileUrl)) continue;
+          approved?.delete(person.profileUrl);
 
           let reason: string | null = null;
           if (!person.canConnect) reason = 'Connect not offered (Follow only, or already pending)';
@@ -317,7 +338,7 @@ export const sendConnectionAgent = defineAgent({
           }
 
           if (input.dryRun) {
-            results.push({ ...person, status: 'would invite' });
+            results.push({ ...person, status: 'would invite', search });
             ctx.log('info', `Would invite ${person.name} - ${person.headline}`);
             sent += 1;
             continue;
@@ -333,7 +354,7 @@ export const sendConnectionAgent = defineAgent({
 
           if (result.sent) {
             sent += 1;
-            results.push({ ...person, status: 'sent' });
+            results.push({ ...person, status: 'sent', search });
             await ctx.recordActivity({
               kind: 'connection_request',
               ok: true,
@@ -361,14 +382,15 @@ export const sendConnectionAgent = defineAgent({
             ctx.log('info', `Skipped ${person.name}: ${result.skipReason}`);
           }
 
-          if (sent < input.max) await ctx.pace();
+          if (sent < max) await ctx.pace();
         }
-        if (sent < input.max && pageNo < input.maxPages) await ctx.pace();
+        if (sent < max && pageNo < input.maxPages && approved?.size !== 0) await ctx.pace();
       }
     } catch (error) {
       // Today's or this week's limit is reached: a normal end, not a failure.
       if (!(error instanceof QuotaExceededError)) throw error;
       ctx.log('info', `Limit reached: ${error.message}`);
+      stoppedBecause = error.message;
     }
 
     ctx.log(

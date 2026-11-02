@@ -102,6 +102,13 @@ export default function AccountScreen() {
             )}
           </View>
 
+          {platform === 'linkedin' && data.identity.status === 'active' && (
+            <Button
+              title="Find people to invite"
+              onPress={() => router.push({ pathname: '/invite/[id]', params: { id, label: title } })}
+            />
+          )}
+
           <Button
             kind="secondary"
             title="Posting profile (for Claude drafts)"

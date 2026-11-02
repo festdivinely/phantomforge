@@ -22,6 +22,7 @@ function RootStack() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="account/[id]" options={{ title: 'Account' }} />
           <Stack.Screen name="profile/[id]" options={{ title: 'Posting profile' }} />
+          <Stack.Screen name="invite/[id]" options={{ title: 'Who to invite' }} />
           <Stack.Screen
             name="login/[id]"
             options={{ title: 'Log in to LinkedIn', gestureEnabled: false }}
