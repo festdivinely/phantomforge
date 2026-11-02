@@ -106,7 +106,15 @@ async function editBox(
   if (!closed) {
     await ctx.captureArtifact('screenshot', `${form.label}: form stayed open after Save`);
     await ctx.captureArtifact('aria_snapshot', `${form.label}: form stayed open after Save`);
-    throw new PhantomForgeError('UNKNOWN', `LinkedIn did not accept the ${form.label} - see the screenshot`);
+    // Seen: "Industry is a required field" - the whole form must be valid, not just our box.
+    const reasons = (await dialog.innerText().catch(() => ''))
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => /required field|is required|can'?t be (empty|blank)|too long|try again|went wrong/i.test(l));
+    throw new PhantomForgeError(
+      'UNKNOWN',
+      `LinkedIn did not save the ${form.label}${reasons.length ? `: ${reasons.join('; ')}` : ' - see the screenshot'}. Nothing was changed.`,
+    );
   }
   ctx.log('info', `${form.label} saved`);
   return 'changed';
