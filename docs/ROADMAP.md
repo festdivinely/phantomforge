@@ -114,6 +114,7 @@ Send to the people most likely to accept, staying under LinkedIn's limits.
       1. people who liked or commented on our posts
       2. 2nd-degree connections in chosen locations (e.g. Nigeria) and
          industries, preferring profiles with fewer connections (they accept more)
+- [x] `linkedin.update-profile` (2026-11-01): headline, industry (picked from LinkedIn's list), About, add a job / remove a job. Only owner-approved text; "Notify network" always turned off; the new job is added before the old one is removed; `preview` fills the forms without saving. First used on Ken's account: headline, industry, About and job all applied and checked.
 - [x] `linkedin.send-connection` v2 (2026-11-01), built against the real pages:
       people search (one of the open-to-connect searches per run), skims like a
       reader, skips executives / tech professionals / company pages / Follow-only

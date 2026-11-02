@@ -424,13 +424,18 @@ async function removeJob(ctx: AgentContext, job: { title: string; organization: 
   // LinkedIn asks "are you sure" in a second dialog.
   await page.waitForTimeout(1200);
   await ctx.captureArtifact('aria_snapshot', 'remove job: delete confirmation');
-  const confirm = page
-    .locator('[role="alertdialog"], [role="dialog"]')
-    .filter({ hasText: /delete/i })
-    .last()
-    .getByRole('button', { name: /^delete\b/i })
+  // Seen: a native <dialog> (no role attribute) with heading "Delete role",
+  // "Are you sure you want to delete this role?", and No thanks / Delete.
+  const confirmBox = page
+    .getByRole('dialog')
+    .or(page.getByRole('alertdialog'))
+    .filter({ has: page.getByRole('heading', { name: /^delete (role|experience|position)/i }) })
     .last();
-  if (await confirm.isVisible().catch(() => false)) await clickLikeAPerson(page, confirm);
+  const shownConfirm = await confirmBox
+    .waitFor({ timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (shownConfirm) await clickLikeAPerson(page, confirmBox.getByRole('button', { name: /^delete$/i }).last());
   await page.waitForTimeout(2000);
   await assertSafeToContinue(page);
 
