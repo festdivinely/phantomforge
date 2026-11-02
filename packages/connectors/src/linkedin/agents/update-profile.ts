@@ -260,7 +260,15 @@ async function turnOffNotify(ctx: AgentContext, dialog: Locator) {
     return;
   }
   if (await isOn(sw)) {
-    await clickLikeAPerson(ctx.page, sw);
+    // Seen: the switch is a hidden checkbox; people click the drawn toggle
+    // (its <label for=...>, or the element wrapping it).
+    let toggle = sw;
+    if (!(await sw.isVisible())) {
+      const id = await sw.getAttribute('id');
+      const label = id ? dialog.locator(`label[for="${id}"]`).first() : null;
+      toggle = label && (await label.isVisible().catch(() => false)) ? label : sw.locator('xpath=..');
+    }
+    await clickLikeAPerson(ctx.page, toggle);
     await ctx.page.waitForTimeout(600);
   }
   if (await isOn(sw)) throw new PhantomForgeError('UNKNOWN', 'Could not turn off "Notify network", so nothing was saved');
