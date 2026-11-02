@@ -44,6 +44,10 @@ async function typeLikeAPerson(page: Page, text: string) {
   const paragraphs = text.split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, ' ').trim());
   for (const [i, para] of paragraphs.entries()) {
     if (i > 0) {
+      // Seen: one Enter in the About box is a plain line break; a blank
+      // line between paragraphs needs a second one.
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(150 + Math.random() * 250);
       await page.keyboard.press('Enter');
       await page.waitForTimeout(400 + Math.random() * 600);
     }

@@ -34,9 +34,15 @@ const PAGES = [
     url: (own: string) => `${own}details/experience/`,
     open: 'main a[href*="/details/experience/edit/forms/"]',
   },
+  {
+    key: 'add-position',
+    name: 'add job form',
+    url: (own: string) => `${own}details/experience/`,
+    open: 'main button:has-text("Add a position"), main [aria-label*="Add a position" i]',
+  },
 ] as const;
 
-const PAGE_KEYS = ['feed', 'own-profile', 'received', 'sent', 'network', 'search', 'edit-intro', 'edit-about', 'experience', 'edit-experience', 'visibility', 'followers', 'invitations-setting'] as const;
+const PAGE_KEYS = ['feed', 'own-profile', 'received', 'sent', 'network', 'search', 'edit-intro', 'edit-about', 'experience', 'edit-experience', 'visibility', 'followers', 'invitations-setting', 'add-position'] as const;
 
 const inputSchema = z.object({
   pages: z
