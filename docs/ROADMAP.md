@@ -128,7 +128,7 @@ Send to the people most likely to accept, staying under LinkedIn's limits.
 - [x] "Who to invite" approval list in the phone app (2026-11-01): account screen ->
       Find people to invite -> a practice run lists people (and who the rules
       left out, with reasons); the owner ticks people (capped at today's
-      remaining limit) and presses Send.  takes : the same
+      remaining limit) and presses Send. `send-connection` takes `only`: the same
       search is walked again and only the approved people are invited, still
       through every rule, limit and the acceptance guard. People it can't find
       or couldn't send to are listed with the reason. Lists over a day old must
