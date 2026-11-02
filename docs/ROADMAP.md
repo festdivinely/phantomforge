@@ -229,8 +229,37 @@ app needs that built in (owner's idea, 2026-11-01):
       Claude drafts headline / About / job entry, the user edits and
       approves, then a `linkedin.update-profile` agent applies it (study the
       edit screens first). Never invent facts; nothing changes unapproved.
-- [ ] **"Ask Claude" chat** in the app, answering from the user's own data
-      (runs, warnings, health check).
+- [ ] **"Ask Claude" chat screen** in the app (not built yet). Design:
+      - One conversation per account, saved in the database; the user sees
+        the whole history when they come back.
+      - Answers come from the user's own data (runs, warnings, health
+        check, profile study), never from guesses.
+      - Claude can propose changes (headline, About, job, settings) as
+        cards with Approve / Edit / No buttons. Nothing touches LinkedIn
+        until the user approves, and every change uses preview first.
+      - Each AI action shows its credit price before it starts.
+- [ ] **Long jobs keep going when the user leaves** (owner's question,
+      2026-11-01):
+      - AI work and LinkedIn work run on the server as queued jobs, not on
+        the phone. Closing the app, phone off or no network doesn't stop them.
+      - When a job finishes or needs an approval, the user gets a phone
+        notification (and Telegram, if linked).
+      - Waiting approvals just wait; nothing happens without the user.
+      - A stopped or failed job only charges credits for the work done.
+- [ ] **Billing: plan + AI credits** (owner's choice, 2026-11-01):
+      - Each monthly plan includes a credit allowance that covers normal
+        use (questions, short checks).
+      - Every AI action has a fixed credit price shown up front, e.g.
+        quick question 1, headline/About rewrite 5, full profile review 20
+        (numbers to be set from real costs).
+      - Users with lots to fix buy top-up packs or move to a bigger plan;
+        light users never pay for heavy users.
+      - The app records the real Claude API cost of every call next to the
+        credits charged, with an owner report, so credit prices always stay
+        above cost.
+      - Per-user daily spending cap so one account can't run up a huge bill.
+      - Payments: pick a provider that works for a Nigeria-based owner
+        selling worldwide (research before building).
 - [ ] Acceptance-rate guard: pause sending when too few requests are
       accepted (also listed in Phase 5).
 - [ ] Customer-facing Claude features run on the paid Claude API (a few
