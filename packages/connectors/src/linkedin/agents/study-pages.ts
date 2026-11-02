@@ -38,7 +38,8 @@ const PAGES = [
     key: 'add-position',
     name: 'add job form',
     url: (own: string) => `${own}details/experience/`,
-    open: 'main button:has-text("Add a position"), main [aria-label*="Add a position" i]',
+    // Seen: a + button opens a menu with Add role / Add career break.
+    open: ['main button:has-text("Add a position"), main [aria-label*="Add a position" i]', 'text="Add role"'],
   },
 ] as const;
 
@@ -113,11 +114,19 @@ export const studyPagesAgent = defineAgent({
       if (typeof target.url !== 'string') {
         await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
         if ('open' in target) {
-          const link = page.locator(target.open).first();
-          await link.scrollIntoViewIfNeeded({ timeout: 10_000 });
-          await link.hover();
-          await page.waitForTimeout(500 + Math.random() * 700);
-          await link.click();
+          // Some forms sit behind a menu: click each step in turn.
+          const steps: readonly string[] = typeof target.open === 'string' ? [target.open] : target.open;
+          for (const [i, step] of steps.entries()) {
+            const link = page.locator(step).first();
+            await link.scrollIntoViewIfNeeded({ timeout: 10_000 });
+            await link.hover();
+            await page.waitForTimeout(500 + Math.random() * 700);
+            await link.click();
+            if (i < steps.length - 1) {
+              await page.waitForTimeout(1000);
+              await ctx.captureArtifact('aria_snapshot', `${target.name} (menu)`);
+            }
+          }
           await page.getByRole('dialog').first().waitFor({ timeout: 15_000 }).catch(() => undefined);
           await page.waitForTimeout(1500);
         }

@@ -49,3 +49,59 @@ export const industryBox = selector('industry-box', [
   byRole('textbox-industry', 'textbox', { name: /^industry\b/i }),
   byCss('aria-label-industry', 'input[aria-label*="Industry" i], input[id*="industry" i]'),
 ]);
+
+// --- Experience (seen 2026-11-01) ---------------------------------------
+// The experience list has a + button that opens a menu: "Add role" /
+// "Add career break". Each job has a link "Edit <title> at <organisation>".
+// Both the add and edit forms carry a "Notify network" switch that is On by
+// default - it is always turned off before saving.
+
+export const addExperienceButton = selector('add-experience-button', [
+  byRole('button-add-position', 'button', { name: /add a position/i }),
+  byCss('aria-label-add-position', 'main [aria-label*="Add a position" i]'),
+]);
+
+export const addRoleMenuItem = selector('add-role-menu-item', [
+  byRole('menuitem-add-role', 'menuitem', { name: /^add role$/i }),
+  byCss('text-add-role', 'text="Add role"'),
+]);
+
+export const notifyNetworkSwitch = selector('notify-network-switch', [
+  byRole('switch-notify', 'switch', { name: /notify your network/i }),
+  byCss('role-switch', '[role="switch"]'),
+]);
+
+export const jobTitleBox = selector('job-title-box', [
+  byRole('textbox-job-title', 'textbox', { name: /^job title/i }),
+  byCss('placeholder-title', 'input[placeholder*="Product Manager" i]'),
+]);
+
+export const organisationBox = selector('organisation-box', [
+  byRole('textbox-organisation', 'textbox', { name: /^(company or )?organi[sz]ation/i }),
+  byCss('placeholder-organisation', 'input[placeholder*="Microsoft" i]'),
+]);
+
+export const employmentTypeSelect = selector('employment-type-select', [
+  byRole('combobox-employment', 'combobox', { name: /^employment type/i }),
+]);
+
+export const locationTypeSelect = selector('location-type-select', [
+  byRole('combobox-location-type', 'combobox', { name: /^location type/i }),
+]);
+
+export const startMonthSelect = selector('start-month-select', [
+  byRole('combobox-start-month', 'combobox', { name: /^start month/i }),
+]);
+
+export const startYearSelect = selector('start-year-select', [
+  byRole('combobox-start-year', 'combobox', { name: /^start year/i }),
+]);
+
+export const currentlyWorkHereBox = selector('currently-work-here', [
+  byRole('checkbox-current', 'checkbox', { name: /currently (work|working)/i }),
+]);
+
+export const deleteButton = selector('delete-button', [
+  byRole('button-delete', 'button', { name: /^delete\b/i }),
+  byCss('text-delete', 'button:has-text("Delete")'),
+]);
