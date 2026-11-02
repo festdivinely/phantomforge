@@ -49,8 +49,8 @@ export class ChallengeRequiredError extends PhantomForgeError {
 
 /** Our own governor refused the action. Never a bug - it is the point. */
 export class QuotaExceededError extends PhantomForgeError {
-  constructor(action: string, limit: number) {
-    super('QUOTA_EXCEEDED', `Daily quota reached for "${action}" (limit ${limit})`, {
+  constructor(action: string, limit: number, message?: string) {
+    super('QUOTA_EXCEEDED', message ?? `Daily quota reached for "${action}" (limit ${limit})`, {
       retryable: false,
       context: { action, limit },
     });

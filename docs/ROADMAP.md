@@ -125,8 +125,16 @@ Send to the people most likely to accept, staying under LinkedIn's limits.
       nothing. Verified: 7 scenarios on a local copy of the real page; practice
       run on the real account (20 people read, 9 would-invite, 11 skipped with
       reasons). **First real send not done yet.**
-- [ ] Track the acceptance rate per target source; pause sending if it drops
-      (many ignored or "I don't know this person" invitations lead to restrictions)
+- [x] Acceptance-rate guard (2026-11-01): each send run first reads the
+      connections list ("Recently added") and records `invite_accepted` for
+      people this account invited. In `@pf/quota`, every connection request
+      must pass the guard: requests sent 3-30 days ago are judged; once there
+      are 10+, sending pauses if under 25% were accepted. It restarts by itself
+      as people accept or old requests age out. Real accounts only. Tested:
+      rule, database counts, blocked request uses no quota, accepting not
+      blocked, recovery.
+- [ ] Acceptance rate per search source (which searches bring people who accept)
+- [ ] Tell the owner on Telegram / phone when sending pauses
 
 ---
 
@@ -165,7 +173,8 @@ Good posts bring connections *to* the account - the safest growth of all.
       posts waiting), `/api/activity` (live feed, pageable, pollable)
 - [ ] Daily snapshot per identity of totals only LinkedIn knows: connections,
       followers, pending invitations (needs a read agent)
-- [ ] Acceptance rate (needs request -> accepted matching)
+- [ ] Acceptance rate on the dashboard and phone (the data exists now:
+      `invite_accepted` activities, `acceptanceStats()` in @pf/quota)
 
 ---
 
@@ -260,8 +269,22 @@ app needs that built in (owner's idea, 2026-11-01):
       - Per-user daily spending cap so one account can't run up a huge bill.
       - Payments: pick a provider that works for a Nigeria-based owner
         selling worldwide (research before building).
-- [ ] Acceptance-rate guard: pause sending when too few requests are
-      accepted (also listed in Phase 5).
+- [x] Acceptance-rate guard (built 2026-11-01, see Phase 5).
+- [ ] **Auto mode per account** (owner's idea, 2026-11-01) - like Claude
+      Code's auto mode: the user picks, for each kind of work, "Ask me first"
+      or "Auto":
+      - Accept invitations, send requests (with the targeting rules),
+        withdraw old requests: can run on Auto on a schedule.
+      - Posts: on Auto, Claude writes and posts only on topics and facts the
+        user approved once (a "what I post about" setting), never inventing
+        claims; the user can still see and delete every post.
+      - Profile changes stay "Ask me first" always: they put words in the
+        person's mouth.
+      - Auto never switches off the safety rules: daily/weekly limits,
+        warm-up, acceptance-rate guard, stop on any LinkedIn warning.
+      - Default is "Ask me first" for a new account; Auto unlocks after the
+        health check passes. One switch pauses everything.
+      - A daily summary (phone / Telegram) of what Auto did.
 - [ ] Customer-facing Claude features run on the paid Claude API (a few
       cents per check / answer, priced into the plan). The owner's Claude
       subscription is for the owner's own use only.

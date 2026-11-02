@@ -13,6 +13,7 @@ const PAGES = [
   { key: 'own-profile', name: 'own profile', url: `${LINKEDIN_ORIGIN}/in/me/` },
   { key: 'received', name: 'received invitations', url: `${LINKEDIN_ORIGIN}/mynetwork/invitation-manager/received/` },
   { key: 'sent', name: 'sent invitations', url: `${LINKEDIN_ORIGIN}/mynetwork/invitation-manager/sent/` },
+  { key: 'connections', name: 'connections list', url: `${LINKEDIN_ORIGIN}/mynetwork/invite-connect/connections/` },
   { key: 'network', name: 'my network suggestions', url: `${LINKEDIN_ORIGIN}/mynetwork/grow/` },
   {
     key: 'search',
@@ -43,7 +44,7 @@ const PAGES = [
   },
 ] as const;
 
-const PAGE_KEYS = ['feed', 'own-profile', 'received', 'sent', 'network', 'search', 'edit-intro', 'edit-about', 'experience', 'edit-experience', 'visibility', 'followers', 'invitations-setting', 'add-position'] as const;
+const PAGE_KEYS = ['feed', 'own-profile', 'received', 'sent', 'connections', 'network', 'search', 'edit-intro', 'edit-about', 'experience', 'edit-experience', 'visibility', 'followers', 'invitations-setting', 'add-position'] as const;
 
 const inputSchema = z.object({
   pages: z

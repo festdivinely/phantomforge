@@ -70,6 +70,11 @@ async function warmUpFactor(identityId: string): Promise<number> {
   return WARM_UP.find((w) => ageDays < w.beforeDay)?.factor ?? 1;
 }
 
+async function isMockIdentity(identityId: string): Promise<boolean> {
+  const identity = await prisma.identity.findUnique({ where: { id: identityId }, select: { platform: true } });
+  return identity?.platform === 'mock';
+}
+
 const scaled = (limit: number, factor: number) => (limit > 0 ? Math.max(1, Math.floor(limit * factor)) : 0);
 
 export interface QuotaCheck {
@@ -109,8 +114,67 @@ export async function checkQuota(identityId: string, action: QuotaAction): Promi
 }
 
 /**
+ * Acceptance-rate guard (2026-11-01). LinkedIn restricts accounts whose
+ * requests are mostly left unanswered, so sending pauses when too few people
+ * accept. Requests younger than `waitDays` are not judged yet - people need
+ * time to see them - and ones older than `lookbackDays` no longer count.
+ */
+export const ACCEPTANCE_RULE = { waitDays: 3, lookbackDays: 30, minJudged: 10, minRate: 0.25 } as const;
+
+export interface AcceptanceStats {
+  /** Requests old enough to judge (sent between lookbackDays and waitDays ago). */
+  judged: number;
+  /** How many of those the person accepted. */
+  accepted: number;
+}
+
+export type AcceptanceVerdict = { ok: true; rate: number | null } | { ok: false; rate: number; reason: string };
+
+/** Pure rule, so it can be tested without a database. */
+export function acceptanceVerdict(stats: AcceptanceStats, rule = ACCEPTANCE_RULE): AcceptanceVerdict {
+  if (stats.judged < rule.minJudged) return { ok: true, rate: stats.judged ? stats.accepted / stats.judged : null };
+  const rate = stats.accepted / stats.judged;
+  if (rate >= rule.minRate) return { ok: true, rate };
+  return {
+    ok: false,
+    rate,
+    reason:
+      `Sending paused: only ${stats.accepted} of the last ${stats.judged} requests were accepted ` +
+      `(${Math.round(rate * 100)}%, needs ${Math.round(rule.minRate * 100)}%). ` +
+      'Too many unanswered requests is how LinkedIn restricts accounts. ' +
+      'Sending starts again by itself as more people accept or old requests age out.',
+  };
+}
+
+export async function acceptanceStats(identityId: string, now = new Date()): Promise<AcceptanceStats> {
+  const day = 86_400_000;
+  const requests = await prisma.activity.findMany({
+    where: {
+      identityId,
+      kind: 'connection_request',
+      succeeded: true,
+      targetUrl: { not: null },
+      occurredAt: {
+        gte: new Date(now.getTime() - ACCEPTANCE_RULE.lookbackDays * day),
+        lte: new Date(now.getTime() - ACCEPTANCE_RULE.waitDays * day),
+      },
+    },
+    select: { targetUrl: true },
+  });
+  const urls = [...new Set(requests.map((r) => r.targetUrl!))];
+  if (urls.length === 0) return { judged: 0, accepted: 0 };
+  const accepted = await prisma.activity.findMany({
+    where: { identityId, kind: 'invite_accepted', targetUrl: { in: urls } },
+    select: { targetUrl: true },
+    distinct: ['targetUrl'],
+  });
+  return { judged: urls.length, accepted: accepted.length };
+}
+
+/**
  * Reserve quota for one action. Throws QuotaExceededError when the daily or
  * weekly budget is spent - that is a normal, expected outcome, not a bug.
+ * Connection requests must also pass the acceptance-rate guard.
  * The worker runs one run per identity at a time, so check-then-write here
  * cannot race against another run on the same account.
  */
@@ -125,6 +189,10 @@ export async function consumeQuota(
     throw new QuotaExceededError(`${action} (this week)`, check.week.limit);
   }
   if (check.used + amount > check.limit) throw new QuotaExceededError(action, check.limit);
+  if (action === 'connection_request' && !(await isMockIdentity(identityId))) {
+    const verdict = acceptanceVerdict(await acceptanceStats(identityId));
+    if (!verdict.ok) throw new QuotaExceededError(action, 0, verdict.reason);
+  }
 
   const day = ownerDay();
   const row = await prisma.quotaUsage.upsert({

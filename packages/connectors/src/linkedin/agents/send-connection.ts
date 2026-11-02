@@ -106,6 +106,35 @@ async function readResults(page: Page): Promise<Found[]> {
   return found;
 }
 
+/**
+ * Notes who accepted this account's requests, so the acceptance-rate guard in
+ * the quota package can judge the account before anything is sent. Seen
+ * (2026-11-01): the connections list is sorted "Recently added", so new
+ * acceptances are at the top; only people this account invited are recorded.
+ */
+async function noteAcceptances(ctx: AgentContext): Promise<number> {
+  const { page } = ctx;
+  await page.goto(`${LINKEDIN_ORIGIN}/mynetwork/invite-connect/connections/`, { waitUntil: 'domcontentloaded' });
+  await assertSafeToContinue(page);
+  await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+  await skim(page, 2);
+  const hrefs = await page
+    .locator('main a[href*="/in/"]')
+    .evaluateAll((links) => links.map((a) => a.getAttribute('href') ?? ''));
+  let noted = 0;
+  for (const url of new Set(hrefs.map((h) => normaliseProfileUrl(h)).filter((u): u is string => !!u))) {
+    if (!(await ctx.alreadyActedOn(url, ['connection_request']))) continue;
+    if (await ctx.alreadyActedOn(url, ['invite_accepted'])) continue;
+    await ctx.recordActivity({ kind: 'invite_accepted', ok: true, targetUrl: url });
+    noted += 1;
+  }
+  ctx.log(
+    'info',
+    noted ? `${noted} more ${noted === 1 ? 'person' : 'people'} accepted earlier requests` : 'No new acceptances since last time',
+  );
+  return noted;
+}
+
 async function dismiss(page: Page, dialog: Locator) {
   const close = await resolveSelector(dialog, dialogDismissButton, { timeoutMs: 1_500 }).catch(() => null);
   if (close) await close.click().catch(() => undefined);
@@ -247,6 +276,10 @@ export const sendConnectionAgent = defineAgent({
     });
 
     try {
+      // Before sending, record who accepted earlier requests: the guard judges the account on it.
+      await noteAcceptances(ctx);
+      await ctx.pace();
+
       for (let pageNo = 1; pageNo <= input.maxPages && sent < input.max; pageNo += 1) {
         if (ctx.signal.aborted) break;
         const url = `${LINKEDIN_ORIGIN}/search/results/people/?keywords=${encodeURIComponent(search)}&origin=GLOBAL_SEARCH_HEADER${pageNo > 1 ? `&page=${pageNo}` : ''}`;

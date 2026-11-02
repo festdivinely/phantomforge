@@ -34,6 +34,13 @@ export type QuotaAction =
   | 'post_create'
   | 'post_engage';
 
+/**
+ * What the activity record can hold: every metered action, plus outcomes the
+ * account sees later - 'invite_accepted' is someone accepting a request this
+ * account sent.
+ */
+export type ActivityKind = QuotaAction | 'invite_accepted';
+
 /** Health of a stored platform session. */
 export type IdentityStatus = 'active' | 'expired' | 'challenged' | 'restricted' | 'disabled';
 

@@ -1,9 +1,9 @@
 import type { Page } from 'playwright';
-import type { Checkpoint, LogLevel, QuotaAction, RunArtifact } from '@pf/core';
+import type { ActivityKind, Checkpoint, LogLevel, QuotaAction, RunArtifact } from '@pf/core';
 
 /** One action the identity performed on the platform, for the growth record. */
 export interface ActivityRecord {
-  kind: QuotaAction;
+  kind: ActivityKind;
   ok: boolean;
   targetName?: string;
   targetUrl?: string;
@@ -56,7 +56,7 @@ export interface AgentContext {
    * `targetUrl` (successfully) - e.g. never invite someone who was invited or
    * withdrawn before.
    */
-  alreadyActedOn(targetUrl: string, kinds: QuotaAction[]): Promise<boolean>;
+  alreadyActedOn(targetUrl: string, kinds: ActivityKind[]): Promise<boolean>;
 
   /** Capture a screenshot / DOM snapshot into object storage. */
   captureArtifact(kind: RunArtifact['kind'], note?: string): Promise<RunArtifact>;

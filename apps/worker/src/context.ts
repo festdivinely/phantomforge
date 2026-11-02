@@ -1,6 +1,6 @@
 import type { Page } from 'playwright';
 import type { ActivityRecord, AgentContext } from '@pf/connectors';
-import type { Checkpoint, LogLevel, QuotaAction, RunArtifact } from '@pf/core';
+import type { ActivityKind, Checkpoint, LogLevel, QuotaAction, RunArtifact } from '@pf/core';
 import { leadDedupeKey, leadSchema } from '@pf/core';
 import { prisma } from '@pf/db';
 import { consumeQuota, pace } from '@pf/quota';
@@ -111,7 +111,7 @@ export function createAgentContext(params: {
       });
     },
 
-    async alreadyActedOn(targetUrl: string, kinds: QuotaAction[]) {
+    async alreadyActedOn(targetUrl: string, kinds: ActivityKind[]) {
       const found = await prisma.activity.findFirst({
         where: { identityId, targetUrl, kind: { in: kinds }, succeeded: true },
         select: { id: true },
